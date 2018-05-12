@@ -50,6 +50,8 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
     import os
+    import inception_model
+
 
     # Initialize variables
     X = tf.placeholder(tf.float32, shape=[None, 784])
@@ -106,8 +108,10 @@ if __name__ == "__main__":
 
     for it in range(1000000):
         if it % 1000 == 0:
-            samples = sess.run(G_sample, feed_dict={Z: sample_Z(16, Z_dim)})
-
+            samples = sess.run(G_sample, feed_dict={Z: sample_Z(64, Z_dim)})
+            list_images = [np.append(np.array(sample*255, dtype = 'int64').reshape((1,28,28)), np.zeros((2,28,28)), axis = 0) for sample in samples]
+            mean, std = inception_model.get_inception_score(list_images)
+            print('Inception score :', mean, 'with std :', std, '\n')
             fig = plot(samples)
             plt.savefig('out/{}.png'.format(str(i).zfill(3)), bbox_inches='tight')
             i += 1
