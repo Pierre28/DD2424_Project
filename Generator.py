@@ -5,9 +5,9 @@ class Generator:
     def __init__(self, input_shape, first_block_depth=1024):
         self.output_side = input_shape[0]
         self.output_depth = input_shape[2]
-        self.blocks_depth = [int(first_block_depth/2**i) for i in range(4)] + [self.output_depth]
-        self.blocks_size = [int(self.output_side/2**i) for i in range(5)][::-1]
-
+        self.blocks_depth = [int(first_block_depth/2**i) for i in range(2)] + [self.output_depth]
+        self.blocks_size = [int(self.output_side/2**i) for i in range(3)][::-1]
+        self.blocks_size = [7,14,28]
         self.variables = []
         self.loss = tf.Variable([])
         self.optimizer = tf.train.AdamOptimizer()
@@ -23,9 +23,9 @@ class Generator:
                                                     padding='same', activation=tf.nn.relu)
             output_gen = tf.layers.conv2d_transpose(output_gen, kernel_size=5, filters=self.blocks_depth[2], strides=2,
                                                     padding='same', activation=tf.nn.relu)
-            output_gen = tf.layers.conv2d_transpose(output_gen, kernel_size=5, filters=self.blocks_depth[3], strides=2,
+            #output_gen = tf.layers.conv2d_transpose(output_gen, kernel_size=5, filters=self.blocks_depth[3], strides=2,
                                                     padding='same', activation=tf.nn.relu)
-            output_gen = tf.layers.conv2d_transpose(output_gen, kernel_size=5, filters=self.blocks_depth[4], strides=2,
+            #output_gen = tf.layers.conv2d_transpose(output_gen, kernel_size=5, filters=self.blocks_depth[4], strides=2,
                                                     padding='same', activation=tf.nn.relu)
             output_gen = tf.nn.tanh(output_gen)
             return output_gen
