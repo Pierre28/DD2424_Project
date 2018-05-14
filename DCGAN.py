@@ -29,11 +29,11 @@ class DCGAN():
         self.get_noise(1)
         self.X_batch = tf.random_uniform([1, 64, 64, 3], -1, 1)
         ini_fake_image = self.generator.forward_pass(self.noise_batch)
-        self.generator.initialize_variables()
         ini_proba, ini_logits = self.discriminator.forward_pass(ini_fake_image)
-        self.discriminator.initialize_variables()
         # Loss
         self.update_loss(self.X_batch, ini_fake_image, ini_proba)
+        self.generator.initialize_variables()        
+        self.discriminator.initialize_variables()
         # Computation graph
         writer = tf.summary.FileWriter('.')
         writer.add_graph(tf.get_default_graph())
