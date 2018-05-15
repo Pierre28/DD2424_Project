@@ -48,7 +48,7 @@ class DCGAN():
             self.initialize_variables()
             sess.run(tf.global_variables_initializer())
             # Train
-            max_j = int(np.ceil(X.shape[1] / batch_size)) + 1
+            max_j = int(np.ceil(int(X.shape[0])/ batch_size)) + 1
             for i in range(n_epochs):
                 print("Performing epoch " + str(i+1) + "/" + str(n_epochs))
                 for j in range(1, max_j):
