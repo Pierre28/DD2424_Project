@@ -57,16 +57,16 @@ class DCGAN():
             for i in range(n_epochs):                
                 print("Performing epoch " + str(i+1) + "/" + str(n_epochs) + '\n')
                 for j in range(1, max_j):
-                    print("Performing sub-epoch " + str(j) + "/" + str(max_j-1) + '\n')
                     j_start = (j - 1) * batch_size
                     j_end = j * batch_size
                     self.X_batch_ = X[j_start:j_end]
                     self.noise_batch_ = self.get_noise(j_end-j_start)
 
-                    #sess.run([self.discriminator.optimizer, self.discriminator.optimizer], feed_dict={self.X_batch: self.X_batch_, self.noise_batch: self.noise_batch_})
-                    #sess.run([self.generator.optimizer, self.generator.optimizer], feed_dict={self.noise_batch: self.noise_batch_})
-                    sess.run(self.discriminator.optimizer, feed_dict={self.X_batch: self.X_batch_, self.noise_batch: self.noise_batch_})
-                    sess.run(self.generator.optimizer, feed_dict={self.noise_batch: self.noise_batch_})
+                    _, D_curr_loss = sess.run([self.discriminator.optimizer, self.discriminator.loss], feed_dict={self.X_batch: self.X_batch_, self.noise_batch: self.noise_batch_})
+                    _, G_curr_loss = sess.run([self.generator.optimizer, self.generator.loss], feed_dict={self.noise_batch: self.noise_batch_})
+                    #sess.run(self.discriminator.optimizer, feed_dict={self.X_batch: self.X_batch_, self.noise_batch: self.noise_batch_})
+                    #sess.run(self.generator.optimizer, feed_dict={self.noise_batch: self.noise_batch_})
+                    print("Sub-epoch " + str(j) + "/" + str(max_j-1) + 'performed with cost G :' + str(D_curr_loss) + ' and cost D :' + str(G_curr_loss) + '\n')
 
             self.noise_batch_ = self.get_noise(100)
             images = sess.run(self.generator.forward_pass(self.noise_batch_), feed_dict = {self.noise_batch: self.noise_batch_})

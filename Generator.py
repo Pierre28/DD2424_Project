@@ -13,7 +13,7 @@ class Generator:
         
         self.optimizer = tf.train.AdamOptimizer()
 
-    def forward_pass(self, z, reuse=None):
+    def forward_pass(self, z, reuse=tf.AUTO_REUSE): #AUTO_REUSE necessary to compute inception.
         z = tf.convert_to_tensor(z, np.float32)
         with tf.variable_scope("generator", reuse=reuse):
             # Projection of noise and proper reshaping
