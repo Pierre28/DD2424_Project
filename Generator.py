@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import numpy as np 
 
 class Generator:
     def __init__(self, input_shape, first_block_depth=1024):
@@ -14,6 +14,7 @@ class Generator:
         self.optimizer = tf.train.AdamOptimizer()
 
     def forward_pass(self, z, reuse=None):
+        z = tf.convert_to_tensor(z, np.float32)
         with tf.variable_scope("generator", reuse=reuse):
             # Projection of noise and proper reshaping
 
@@ -30,7 +31,7 @@ class Generator:
             # output_gen = tf.layers.conv2d_transpose(output_gen, kernel_size=5, filters=self.blocks_depth[4], strides=2,
             #                                         padding='same', activation=tf.nn.relu)
             output_gen = tf.nn.tanh(output_gen)
-            return output_gen
+        return output_gen
 
     def update_loss(self, proba_fake_images):
         self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=proba_fake_images,

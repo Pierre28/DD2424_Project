@@ -16,9 +16,12 @@ class DCGAN():
 
         self.discriminator = Discriminator(input_shape, first_block_depth)
         self.generator = Generator(input_shape, first_block_depth=512) 
+        #self.generator = Generator(self.noise_batch, first_block_depth=512) 
 
     def get_noise(self, batch_size, min_distri=-1, max_distri=1):
-        self.noise_batch = tf.random_uniform([batch_size, self.dim_noise], min_distri, max_distri)
+        #self.noise_batch = tf.random_uniform([batch_size, self.dim_noise], min_distri, max_distri)
+        self.noise_batch = np.random.uniform(low = min_distri, high = max_distri, size = [batch_size, self.dim_noise]) \
+                                                                                                .astype('float32')
 
     def update_loss(self, real_logits, fake_logits, probability_fake_images):
         self.discriminator.update_loss(real_logits, fake_logits)
@@ -41,8 +44,9 @@ class DCGAN():
         writer.add_graph(tf.get_default_graph())
 
     def train(self, X, n_epochs, batch_size):
-        X = tf.convert_to_tensor(X)
-        X = tf.reshape(X, shape=[-1, self.output_side, self.output_side, self.output_depth])
+        #X = tf.convert_to_tensor(X)
+        #X = tf.reshape(X, shape=[-1, self.output_side, self.output_side, self.output_depth])
+        X = np.reshape(X, newshape =[-1, self.output_side, self.output_side, self.output_depth]).astype('float32')
         # Initialize variables and graph
         with tf.Session() as sess:
             self.initialize_variables()
@@ -55,8 +59,10 @@ class DCGAN():
                     print("Performing sub-epoch " + str(j) + "/" + str(max_j-1))
                     j_start = (j - 1) * batch_size
                     j_end = j * batch_size
-                    self.X_batch = X[j_start:j_end]
-                    self.noise_batch = self.get_noise(j_end-j_start)
+                    self.X_batch_ = X[j_start:j_end]
+                    self.noise_batch_ = self.get_noise(j_end-j_start)
 
-                    sess.run(self.discriminator.optimizer, feed_dict={"X_real": self.X_batch, "noise": self.noise_batch})
-                    sess.run(self.generator.optimizer, feed_dict={"noise": self.noise_batch})
+                    #sess.run([self.discriminator.optimizer, self.discriminator.optimizer], feed_dict={self.X_batch: self.X_batch_, self.noise_batch: self.noise_batch_})
+                    #sess.run([self.generator.optimizer, self.generator.optimizer], feed_dict={self.noise_batch: self.noise_batch_})
+                    sess.run(self.discriminator.optimizer, feed_dict={self.X_batch: self.X_batch_, self.noise_batch: self.noise_batch_})
+                    sess.run(self.generator.optimizer, feed_dict={self.noise_batch: self.noise_batch_})
