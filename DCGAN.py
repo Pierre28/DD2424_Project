@@ -2,6 +2,7 @@ from Generator import *
 from Discriminator import *
 import tensorflow as tf
 import numpy as np
+import inception_model
 
 class DCGAN():
     def __init__(self, input_shape, first_block_depth=1024, dim_noise=100):
@@ -53,10 +54,10 @@ class DCGAN():
             sess.run(tf.global_variables_initializer())
             # Train
             max_j = int(np.ceil(int(X.shape[0])/ batch_size)) + 1
-            for i in range(n_epochs):
-                print("Performing epoch " + str(i+1) + "/" + str(n_epochs))
+            for i in range(n_epochs):                
+                print("Performing epoch " + str(i+1) + "/" + str(n_epochs) + '\n')
                 for j in range(1, max_j):
-                    print("Performing sub-epoch " + str(j) + "/" + str(max_j-1))
+                    print("Performing sub-epoch " + str(j) + "/" + str(max_j-1) + '\n')
                     j_start = (j - 1) * batch_size
                     j_end = j * batch_size
                     self.X_batch_ = X[j_start:j_end]
@@ -66,3 +67,10 @@ class DCGAN():
                     #sess.run([self.generator.optimizer, self.generator.optimizer], feed_dict={self.noise_batch: self.noise_batch_})
                     sess.run(self.discriminator.optimizer, feed_dict={self.X_batch: self.X_batch_, self.noise_batch: self.noise_batch_})
                     sess.run(self.generator.optimizer, feed_dict={self.noise_batch: self.noise_batch_})
+
+            self.noise_batch_ = self.get_noise(100)
+            images = sess.run(self.generator.forward_pass(self.noise_batch_), feed_dict = {self.noise_batch: self.noise_batch_})
+            list_images = [np.append(np.array(image*255, dtype = 'int32').reshape((1,28,28)), np.zeros((2,28,28)), axis = 0) for image in images]
+            mean, std = inception_model.get_inception_score(list_images)
+            print('Program ended with inception score' + str(mean))
+
