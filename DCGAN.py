@@ -20,8 +20,7 @@ class DCGAN():
 
     def get_noise(self, batch_size, min_distri=-1, max_distri=1):
         #self.noise_batch = tf.random_uniform([batch_size, self.dim_noise], min_distri, max_distri)
-        self.noise_batch = np.random.uniform(low = min_distri, high = max_distri, size = [batch_size, self.dim_noise]) \
-                                                                                                .astype('float32')
+        return np.random.uniform(low = min_distri, high = max_distri, size = [batch_size, self.dim_noise]).astype('float32')
 
     def update_loss(self, real_logits, fake_logits, probability_fake_images):
         self.discriminator.update_loss(real_logits, fake_logits)
@@ -30,7 +29,8 @@ class DCGAN():
     def initialize_variables(self):
         # Variables
         self.get_noise(1)
-        self.X_batch = tf.random_uniform([1, 64, 64, 3], -1, 1)
+        #self.X_batch = tf.random_uniform([1, 64, 64, 3], -1, 1) Used for initialize true image ? Shape does not correspond to the shape from placeholder
+
         ini_fake_image = self.generator.forward_pass(self.noise_batch)
         ini_proba_fake, ini_logits_fake = self.discriminator.forward_pass(ini_fake_image)
         #Il faut aller chercher les logits d'une vraie image.. Pour débugger je prends ceux d'une fausse
