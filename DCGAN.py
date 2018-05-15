@@ -15,13 +15,13 @@ class DCGAN():
         self.is_training = tf.placeholder(dtype=tf.bool, name='is_training')
 
         self.discriminator = Discriminator(input_shape, first_block_depth)
-        self.generator = Generator(input_shape, first_block_depth)
+        self.generator = Generator(input_shape, first_block_depth=512) 
 
     def get_noise(self, batch_size, min_distri=-1, max_distri=1):
         self.noise_batch = tf.random_uniform([batch_size, self.dim_noise], min_distri, max_distri)
 
-    def update_loss(self, real_images, real_logits, fake_images, fake_logits, probability_fake_images):
-        self.discriminator.update_loss(real_images, real_logits, fake_images, fake_logits)
+    def update_loss(self, real_logits, fake_logits, probability_fake_images):
+        self.discriminator.update_loss(real_logits, fake_logits)
         self.generator.update_loss(probability_fake_images)
 
     def initialize_variables(self):
@@ -29,10 +29,12 @@ class DCGAN():
         self.get_noise(1)
         self.X_batch = tf.random_uniform([1, 64, 64, 3], -1, 1)
         ini_fake_image = self.generator.forward_pass(self.noise_batch)
-        ini_proba, ini_logits = self.discriminator.forward_pass(ini_fake_image)
+        ini_proba_fake, ini_logits_fake = self.discriminator.forward_pass(ini_fake_image)
+        #Il faut aller chercher les logits d'une vraie image.. Pour débugger je prends ceux d'une fausse
+        ini_proba_real, ini_logits_real = self.discriminator.forward_pass(ini_fake_image)
         # Loss
-        self.update_loss(self.X_batch, ini_fake_image, ini_proba)
-        self.generator.initialize_variables()        
+        self.update_loss(real_logits = ini_logits_image, fake_logits = ini_logits_fake, probability_fake_images = ini_proba_fake)
+        self.generator.initialize_variables()
         self.discriminator.initialize_variables()
         # Computation graph
         writer = tf.summary.FileWriter('.')

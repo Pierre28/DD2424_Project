@@ -20,13 +20,14 @@ class Discriminator:
             proba_of_real = tf.layers.conv2d(proba_of_real, kernel_size=5, filters=nb_filters*8, strides=1, padding='same', activation=tf.nn.leaky_relu)
 
             proba_of_real = tf.contrib.layers.flatten(proba_of_real)
-            proba_of_real = tf.layers.dense(proba_of_real, units=1)
-            proba_of_real = tf.nn.sigmoid(proba_of_real)
-            return proba_of_real
+            proba_of_real_logit = tf.layers.dense(proba_of_real, units=1)
+            
+            proba_of_real = tf.nn.sigmoid(proba_of_real_logit)
+            return proba_of_real, proba_of_real_logit
 
-    def update_loss(self, real_images, fake_images):
-        real_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.ones_like(real_images), logits=real_images))
-        fake_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.zeros_like(fake_images), logits=fake_images))
+    def update_loss(self, real_logits, fake_logits):
+        real_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.ones_like(real_logits), logits=real_logits))
+        fake_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.zeros_like(fake_logits), logits=fake_logits))
         self.loss = real_loss + fake_loss
 
     def initialize_variables(self):
