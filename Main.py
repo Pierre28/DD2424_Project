@@ -1,15 +1,17 @@
 from DCGAN import *
 from mnist import MNIST
 import numpy as np
-import tensorflow as tf
 
 
 def main():
-    mndata = MNIST('Datasets\MNIST')
-    images, labels = mndata.load_training()
-    images, labels = np.array(images), np.array(labels)
-    dcgan = DCGAN([28, 28, 1])
-    dcgan.train(np.array(images)[:10000, :], 100, 100)
+    path_to_dataset = os.path.join('Datasets', 'MNIST')
+
+    mndata = MNIST(path_to_dataset)
+    images, _ = mndata.load_training()
+    images = np.array(images)/255
+    dcgan = DCGAN([28, 28, 1], first_block_depth=20, simple_model=True)
+    dcgan.train(images, 1000, 100)
+
 
 if __name__ == '__main__':
     main()
