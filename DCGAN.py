@@ -3,6 +3,9 @@ from Discriminator import *
 import tensorflow as tf
 import numpy as np
 import inception_model
+import os
+import matplotlib.pyplot as plt 
+
 
 class DCGAN():
     def __init__(self, input_shape, first_block_depth=1024, dim_noise=100):
@@ -64,13 +67,44 @@ class DCGAN():
 
                     _, D_curr_loss = sess.run([self.discriminator.optimizer, self.discriminator.loss], feed_dict={self.X_batch: self.X_batch_, self.noise_batch: self.noise_batch_})
                     _, G_curr_loss = sess.run([self.generator.optimizer, self.generator.loss], feed_dict={self.noise_batch: self.noise_batch_})
-                    #sess.run(self.discriminator.optimizer, feed_dict={self.X_batch: self.X_batch_, self.noise_batch: self.noise_batch_})
-                    #sess.run(self.generator.optimizer, feed_dict={self.noise_batch: self.noise_batch_})
                     print("Sub-epoch " + str(j) + "/" + str(max_j-1) + 'performed with cost G :' + str(D_curr_loss) + ' and cost D :' + str(G_curr_loss) + '\n')
 
-            self.noise_batch_ = self.get_noise(100)
-            images = sess.run(self.generator.forward_pass(self.noise_batch_), feed_dict = {self.noise_batch: self.noise_batch_})
-            list_images = [np.append(np.array(image*255, dtype = 'int32').reshape((1,28,28)), np.zeros((2,28,28)), axis = 0) for image in images]
-            mean, std = inception_model.get_inception_score(list_images)
-            print('Program ended with inception score' + str(mean))
+            # Value in image to low to compute inception score
+            # mean, std = self.compute_inception_score(sess)
+            # print('Programm ended with Inception score', mean)
+
+            self.display_generated_images(sess)
+
+    def compute_inception_score(self, sess):
+        #raise error if model not trained ?
+        self.noise_batch_ = self.get_noise(100)
+        images = sess.run(self.generator.forward_pass(self.noise_batch_), feed_dict = {self.noise_batch: self.noise_batch_})
+        list_images = [np.append(np.array(image*127 + 128, dtype = 'int32').reshape((1,28,28)), np.zeros((2,28,28)), axis = 0) for image in images]
+        return inception_model.get_inception_score(list_images) #mean, std
+
+    def display_generated_images(self, sess, n_images = 16):
+        if not os.path.exists(os.path.join('generated_img', 'MNIST')):
+            os.makedirs(os.path.join('generated_img', 'MNIST'))
+        self.noise_batch_ = self.get_noise(n_images)
+        images = sess.run(self.generator.forward_pass(self.noise_batch_), feed_dict = {self.noise_batch: self.noise_batch_})
+        samples = [np.array(image*127 + 128, dtype = 'int32').reshape((28,28)) for image in images]
+        fig = self.plot(samples)
+        plt.savefig(os.path.join('generated_img', 'MNIST','res.png'))
+        plt.close(fig)
+
+    @staticmethod
+    def plot(samples):
+        size = np.sqrt(len(samples))
+        assert (np.ceil(size) == size), "change image number"
+        size = int(size)
+        fig, axes = plt.subplots(size, size, figsize=(7,7))
+        i = 0
+        for j in range(size):
+            for k in range(size):
+                axes[j][k].set_axis_off()
+                axes[j][k].imshow(samples[i], cmap='Greys_r')
+                i += 1
+
+        return fig
+
 

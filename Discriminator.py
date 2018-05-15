@@ -33,4 +33,4 @@ class Discriminator:
 
     def initialize_variables(self):
         self.variables = [var for var in tf.trainable_variables() if var.name.startswith("discriminator")]
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=0.002, beta1=0.5).minimize(self.loss, var_list=self.variables)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=0.0002, beta1=0.5).minimize(self.loss, var_list=self.variables)
