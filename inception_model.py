@@ -92,5 +92,7 @@ def _init_inception():
     logits = tf.matmul(tf.squeeze(pool3, [1, 2]), w)
     softmax = tf.nn.softmax(logits)
 
+
 if softmax is None:
   _init_inception()
+
