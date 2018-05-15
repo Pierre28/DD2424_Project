@@ -11,7 +11,8 @@ class Discriminator:
         self.loss = tf.Variable([])
         self.optimizer = tf.train.AdamOptimizer()
 
-    def forward_pass(self, image, nb_filters=64, reuse=None):
+    def forward_pass(self, image, nb_filters=64, reuse=tf.AUTO_REUSE):
+        #Reuse = tf.AUTO_REUSE necessary to initialize both fake and real image
         with tf.variable_scope("discriminator", reuse=reuse):
             proba_of_real = tf.reshape(image, shape=[-1, self.output_side, self.output_side, self.output_depth])
             proba_of_real = tf.layers.conv2d(proba_of_real, kernel_size=5, filters=nb_filters, strides=2, padding='same', activation=tf.nn.leaky_relu)
@@ -23,7 +24,7 @@ class Discriminator:
             proba_of_real_logit = tf.layers.dense(proba_of_real, units=1)
             
             proba_of_real = tf.nn.sigmoid(proba_of_real_logit)
-            return proba_of_real, proba_of_real_logit
+        return proba_of_real, proba_of_real_logit
 
     def update_loss(self, real_logits, fake_logits):
         real_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.ones_like(real_logits), logits=real_logits))

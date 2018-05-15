@@ -33,7 +33,7 @@ class DCGAN():
         #Il faut aller chercher les logits d'une vraie image.. Pour débugger je prends ceux d'une fausse
         ini_proba_real, ini_logits_real = self.discriminator.forward_pass(ini_fake_image)
         # Loss
-        self.update_loss(real_logits = ini_logits_image, fake_logits = ini_logits_fake, probability_fake_images = ini_proba_fake)
+        self.update_loss(real_logits = ini_logits_real, fake_logits = ini_logits_fake, probability_fake_images = ini_proba_fake)
         self.generator.initialize_variables()
         self.discriminator.initialize_variables()
         # Computation graph
