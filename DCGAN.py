@@ -19,7 +19,7 @@ class DCGAN():
         self.is_training = tf.placeholder(dtype=tf.bool, name='is_training')
 
         self.discriminator = Discriminator(input_shape, first_block_depth)
-        self.generator = Generator(input_shape, first_block_depth=512) 
+        self.generator = Generator(input_shape, first_block_depth=1024) 
         #self.generator = Generator(self.noise_batch, first_block_depth=512) 
 
     def get_noise(self, batch_size, min_distri=-1, max_distri=1):
@@ -31,16 +31,11 @@ class DCGAN():
         self.generator.update_loss(probability_fake_images)
 
     def initialize_variables(self):
-        # Variables
-        self.get_noise(1)
-        #self.X_batch = tf.random_uniform([1, 64, 64, 3], -1, 1) Used for initialize true image ? Shape does not correspond to the shape from placeholder
-
-        ini_fake_image = self.generator.forward_pass(self.noise_batch)
-        ini_proba_fake, ini_logits_fake = self.discriminator.forward_pass(ini_fake_image)
-        #Il faut aller chercher les logits d'une vraie image.. Pour débugger je prends ceux d'une fausse
-        ini_proba_real, ini_logits_real = self.discriminator.forward_pass(ini_fake_image)
-        # Loss
-        self.update_loss(real_logits = ini_logits_real, fake_logits = ini_logits_fake, probability_fake_images = ini_proba_fake)
+        fake_image = self.generator.forward_pass(self.noise_batch)
+        proba_fake, logits_fake = self.discriminator.forward_pass(fake_image)
+        proba_real, logits_real = self.discriminator.forward_pass(self.X_batch)
+        #Loss
+        self.update_loss(real_logits = logits_real, fake_logits = logits_fake, probability_fake_images = proba_fake)
         self.generator.initialize_variables()
         self.discriminator.initialize_variables()
         # Computation graph
@@ -66,8 +61,11 @@ class DCGAN():
                     self.noise_batch_ = self.get_noise(j_end-j_start)
 
                     _, D_curr_loss = sess.run([self.discriminator.optimizer, self.discriminator.loss], feed_dict={self.X_batch: self.X_batch_, self.noise_batch: self.noise_batch_})
-                    _, G_curr_loss = sess.run([self.generator.optimizer, self.generator.loss], feed_dict={self.noise_batch: self.noise_batch_})
+                    _, G_curr_loss, gen_img = sess.run([self.generator.optimizer, self.generator.loss, self.generator.forward_pass(self.noise_batch_)], feed_dict={self.noise_batch: self.noise_batch_})
                     print("Sub-epoch " + str(j) + "/" + str(max_j-1) + 'performed with cost G :' + str(D_curr_loss) + ' and cost D :' + str(G_curr_loss) + '\n')
+                print(gen_img[0])
+                plt.imshow(gen_img[0].reshape((28,28))*255, cmap = 'Greys_r')
+                plt.show()
 
             # Value in image to low to compute inception score
             # mean, std = self.compute_inception_score(sess)
