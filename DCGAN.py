@@ -38,9 +38,6 @@ class DCGAN():
         self.update_loss(real_logits = logits_real, fake_logits = logits_fake, probability_fake_images = proba_fake)
         self.generator.initialize_variables()
         self.discriminator.initialize_variables()
-        # Computation graph
-        writer = tf.summary.FileWriter('.')
-        writer.add_graph(tf.get_default_graph())
 
     def train(self, X, n_epochs, batch_size):
         #X = tf.convert_to_tensor(X)
@@ -50,6 +47,8 @@ class DCGAN():
         with tf.Session() as sess:
             self.initialize_variables()
             sess.run(tf.global_variables_initializer())
+            # Computation graph
+            writer = tf.summary.FileWriter('output_tensorboard', sess.graph)
             # Train
             max_j = int(np.ceil(int(X.shape[0])/ batch_size)) + 1
             for i in range(n_epochs):                
@@ -63,7 +62,6 @@ class DCGAN():
                     _, D_curr_loss = sess.run([self.discriminator.optimizer, self.discriminator.loss], feed_dict={self.X_batch: self.X_batch_, self.noise_batch: self.noise_batch_})
                     _, G_curr_loss, gen_img = sess.run([self.generator.optimizer, self.generator.loss, self.generator.forward_pass(self.noise_batch_)], feed_dict={self.noise_batch: self.noise_batch_})
                     print("Sub-epoch " + str(j) + "/" + str(max_j-1) + 'performed with cost G :' + str(D_curr_loss) + ' and cost D :' + str(G_curr_loss) + '\n')
-                print(gen_img[0])
                 plt.imshow(gen_img[0].reshape((28,28))*255, cmap = 'Greys_r')
                 plt.show()
 

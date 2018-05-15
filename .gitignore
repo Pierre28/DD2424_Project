@@ -110,5 +110,8 @@ venv.bak/
 test.py
 *.pdf
 *.docx
-profile.bat
 Datasets/
+Test/
+generated_img
+output_tensorboard
+*.bat
