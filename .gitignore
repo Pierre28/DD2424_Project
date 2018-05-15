@@ -115,3 +115,4 @@ Test/
 generated_img/
 output_tensorboard/
 *.bat
+Tools/out/
