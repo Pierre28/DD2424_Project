@@ -112,6 +112,7 @@ test.py
 *.docx
 Datasets/
 Test/
-generated_img
-output_tensorboard
+generated_img/
+output_tensorboard/
 *.bat
+Tools/out/
