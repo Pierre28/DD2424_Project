@@ -40,7 +40,7 @@ class DCGAN():
         self.generator.set_solver()
         self.discriminator.set_solver()
 
-    def train(self, X, n_epochs, batch_size):
+    def train(self, X, n_epochs, batch_size,k=10):
         # Initialize variables and Tensorboard
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
@@ -60,7 +60,8 @@ class DCGAN():
                     # Compute loss and optimize
                     _, D_curr_loss = sess.run([self.discriminator.solver, self.discriminator.loss], feed_dict={self.X_batch: X_batch_values, self.noise_batch: noise_batch_values})
                     noise_batch_values = self.get_noise(j_end - j_start)
-                    _, G_curr_loss = sess.run([self.generator.solver, self.generator.loss], feed_dict={self.noise_batch: noise_batch_values})
+                    if j == 1 or j%k == 0:    # improving G every k steps
+                        _, G_curr_loss = sess.run([self.generator.solver, self.generator.loss], feed_dict={self.noise_batch: noise_batch_values})
                     print(str(j) + '/' + str(max_j-1) + ' : cost D=' + str(D_curr_loss) + ' - cost G=' + str(G_curr_loss) + '\n')
                 self.display_generated_images(sess, i)  # Store generated images after each epoch
 
