@@ -46,6 +46,9 @@ class Discriminator:
                                                                            name='loss_discri_fake_img'),
                                    name='gradient_discri_fake_img')
         self.loss = real_loss + fake_loss
+        
+        
+        
 
     def set_solver(self):
         self.variables = [var for var in tf.trainable_variables() if var.name.startswith("discriminator")]

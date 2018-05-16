@@ -45,6 +45,9 @@ class Generator:
         self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_images_logits,
                                                                            labels=tf.ones_like(fake_images_logits),
                                                                            name='loss_generator'), name='gradient_generator')
+        
+        
+        
 
     def set_solver(self):
         self.variables = [var for var in tf.trainable_variables() if var.name.startswith("generator")]

@@ -14,7 +14,7 @@ def main(gz = True):
     images, _ = mndata.load_training()
     images = np.array(images)/255
     dcgan = DCGAN([28, 28, 1], first_block_depth=20, simple_model=True)
-    dcgan.train(images, 100, 100)
+    dcgan.train(images, 10, 100,k=2)
 
 
 if __name__ == '__main__':
