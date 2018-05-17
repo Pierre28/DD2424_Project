@@ -40,7 +40,7 @@ class DCGAN():
         self.generator.set_solver()
         self.discriminator.set_solver()
 
-    def train(self, X, n_epochs, batch_size,k=1):
+    def train(self, X, n_epochs, batch_size,k=1,type_data = 'MNIST'):
         # Initialize variables and Tensorboard
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
@@ -60,14 +60,16 @@ class DCGAN():
                     # Compute loss and optimize
                     _, D_curr_loss = sess.run([self.discriminator.solver, self.discriminator.loss], feed_dict={self.X_batch: X_batch_values, self.noise_batch: noise_batch_values})
                     noise_batch_values = self.get_noise(j_end - j_start)
+
                     if j == 1 or j%k == 0:    # improving G every k steps
                         _, G_curr_loss = sess.run([self.generator.solver, self.generator.loss], feed_dict={self.noise_batch: noise_batch_values})
+
                     if j%100 == 0:
                         print(str(j) + '/' + str(max_j-1) + ' : cost D=' + str(D_curr_loss) + ' - cost G=' + str(G_curr_loss) + '\n')
                         
                         
-                if i%10 == 0:        
-                    self.display_generated_images(sess, i)  # Store generated images after each epoch
+                if i%2 == 0:        
+                    self.display_generated_images(sess, i, type_data = type_data)  # Store generated images after each epoch
 
             # Value in image to low to compute inception score
             # mean, std = self.compute_inception_score(sess)
@@ -80,17 +82,29 @@ class DCGAN():
         list_images = [np.append(np.array(image*127 + 128, dtype='int32').reshape((1, 28, 28)), np.zeros((2,28,28)), axis=0) for image in images]
         return inception_model.get_inception_score(list_images)  # mean, std
 
-    def display_generated_images(self, sess, n_epoch, n_images=16):
+    def display_generated_images(self, sess, n_epoch, n_images=16, type_data = 'MNIST'):
         print("display")
-        if not os.path.exists(os.path.join('generated_img', 'MNIST')):
-            os.makedirs(os.path.join('generated_img', 'MNIST'))
-        noise_batch_values = self.get_noise(n_images)
-        faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
-        displayable_images = [np.array(image*127 + 128, dtype='int32').reshape((28, 28)) for image in faked_images]
-        fig = self.plot(displayable_images)
-        plt.savefig(os.path.join('generated_img', 'MNIST', 'Epoch' + str(n_epoch) + '.png'))
-        plt.close(fig)
+        if type_data == 'MNIST':
+            if not os.path.exists(os.path.join('generated_img', 'MNIST')):
+                os.makedirs(os.path.join('generated_img', 'MNIST'))
+            noise_batch_values = self.get_noise(n_images)
+            faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
+            displayable_images = [np.array(image*127 + 128, dtype='int32').reshape((28, 28)) for image in faked_images]
+            fig = self.plot(displayable_images)
+            plt.savefig(os.path.join('generated_img', 'MNIST', 'Epoch' + str(n_epoch) + '.png'))
+            plt.close(fig)
 
+        if type_data == 'CIFAR10':
+            if not os.path.exists(os.path.join('generated_img', 'CIFAR10')):
+                os.makedirs(os.path.join('generated_img', 'CIFAR10'))
+                
+            noise_batch_values = self.get_noise(n_images)
+            
+            faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
+            displayable_images = np.reshape(faked_images,(-1,3,32,32)).transpose(0,2,3,1)
+            fig = self.plot(displayable_images)
+            plt.savefig(os.path.join('generated_img', 'CIFAR10', 'Epoch' + str(n_epoch) + '.png'))
+            plt.close(fig)
     @staticmethod
     def plot(samples):
         size = np.sqrt(len(samples))
