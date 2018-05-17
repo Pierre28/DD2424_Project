@@ -5,11 +5,12 @@ class Generator:
     def __init__(self, input_shape, first_block_depth=1024, simple_model=True):
         self.simple_model = simple_model
         # Dimension of data
-        self.output_side = input_shape[0]
+        self.output_height= input_shape[0]
+        self.output_width = input_shape[1]
         self.output_depth = input_shape[2]
         # Parameters of layer
         self.blocks_depth = [int(first_block_depth/2**i) for i in range(2)] + [self.output_depth]
-        #self.blocks_size = [int(self.output_side/2**i) for i in range(3)][::-1]
+        #self.blocks_size = [int(self.output_height/2**i) for i in range(3)][::-1]
         self.blocks_size = [7, 14, 28]
         # Necessary variables to build graph
         self.variables = []

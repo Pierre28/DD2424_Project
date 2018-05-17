@@ -43,7 +43,12 @@ def main(dataSet = 'MNIST'):
         dcgan = DCGAN([32, 32, 3], first_block_depth=20, dim_noise=300, simple_model=True)
         dcgan.train(images, 300, 100, k=5, type_data = dataSet)
        
+    if dataSet == 'CelebA':
+        images = np.load('CelebA_img.npz')['images']
+        images = np.array(images)/255
+        dcgan = DCGAN([218,178,3], first_block_depth = 20, dim_noise = 400, simple_model = True)
+        dcgan.train(images, 300, 100, k=1)
 
 
 if __name__ == '__main__':
-    main()
+    main('CelebA')
