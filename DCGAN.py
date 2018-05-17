@@ -64,7 +64,7 @@ class DCGAN():
                     if j == 1 or j%k == 0:    # improving G every k steps
                         _, G_curr_loss = sess.run([self.generator.solver, self.generator.loss], feed_dict={self.noise_batch: noise_batch_values})
 
-                    if j%100 == 0:
+                    if j%10 == 0:
                         print(str(j) + '/' + str(max_j-1) + ' : cost D=' + str(D_curr_loss) + ' - cost G=' + str(G_curr_loss) + '\n')
                         
                         
@@ -99,12 +99,12 @@ class DCGAN():
                 os.makedirs(os.path.join('generated_img', 'CIFAR10'))
                 
             noise_batch_values = self.get_noise(n_images)
-            
             faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
             displayable_images = np.reshape(faked_images,(-1,3,32,32)).transpose(0,2,3,1)
             fig = self.plot(displayable_images)
             plt.savefig(os.path.join('generated_img', 'CIFAR10', 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
+            
     @staticmethod
     def plot(samples):
         size = np.sqrt(len(samples))
