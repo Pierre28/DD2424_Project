@@ -2,8 +2,8 @@ import tensorflow as tf
 import numpy as np 
 
 class Generator:
-    def __init__(self, input_shape, first_block_depth=1024, simple_model=True):
-        self.simple_model = simple_model
+    def __init__(self, input_shape, first_block_depth=1024, model="simple"):
+        self.model = model
         # Dimension of data
         self.output_side = input_shape[0]
         self.output_depth = input_shape[2]
@@ -16,15 +16,40 @@ class Generator:
         self.loss = 0
         self.solver = 0
 
-    def generate_images(self, z, reuse=tf.AUTO_REUSE):  # AUTO_REUSE necessary to compute inception.
+    def generate_images(self, z, reuse=tf.AUTO_REUSE, is_training=True):  # AUTO_REUSE necessary to compute inception.
         z = tf.convert_to_tensor(z, np.float32)
         with tf.variable_scope("generator", reuse=reuse):
-            if self.simple_model:
+            if self.model=="simple":
                 faked_images = tf.layers.dense(z, units=128, activation=tf.nn.relu)
                 faked_images = tf.layers.dense(faked_images, units=self.output_depth*self.output_side**2, activation=tf.nn.sigmoid)
                 faked_images = tf.reshape(faked_images, shape=[-1, self.output_side, self.output_side, self.output_depth])
 
-            else:
+            elif self.model=="intermediate":
+                activation = tf.nn.leaky_relu
+                d1 = 4
+                d2 = 1
+                dropout_probability = 0.6
+                faked_images = tf.layers.dense(z, units=d1 * d1 * d2, activation=activation)
+                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
+                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
+                faked_images = tf.reshape(faked_images, shape=[-1, d1, d1, d2])
+                faked_images = tf.image.resize_images(faked_images, size=[7, 7])
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=64, strides=2,
+                                                          padding='same', activation=activation)
+                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
+                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=64, strides=2,
+                                                          padding='same', activation=activation)
+                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
+                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=64, strides=1,
+                                                          padding='same', activation=activation)
+                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
+                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=1, strides=1,
+                                                          padding='same', activation=tf.nn.sigmoid)
+
+            elif self.model=="dcgan":
                 # Projection of noise and proper reshaping
                 faked_images = tf.layers.dense(z, units=self.blocks_depth[0]*(self.blocks_size[0]**2), activation=tf.nn.relu)
                 faked_images = tf.reshape(faked_images, shape=[-1, self.blocks_size[0], self.blocks_size[0], self.blocks_depth[0]])
@@ -45,9 +70,6 @@ class Generator:
         self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_images_logits,
                                                                            labels=tf.ones_like(fake_images_logits),
                                                                            name='loss_generator'), name='gradient_generator')
-        
-        
-        
 
     def set_solver(self):
         self.variables = [var for var in tf.trainable_variables() if var.name.startswith("generator")]
