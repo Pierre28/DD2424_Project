@@ -7,7 +7,7 @@ import pickle
 import matplotlib.pyplot as plt
 
 
-def main(dataSet = 'CIFAR10'):
+def main(dataSet = 'MNIST'):
     """
     @param: gz boolean, for MNIST dataSete equals True if data is .gz (compressed) format. False otherwise
     @param: dataSet string, CIFAR MNIST
@@ -19,9 +19,8 @@ def main(dataSet = 'CIFAR10'):
         mndata.gz = True # Données en format .gz dans le dossier Datasets\MNIST
         images, _ = mndata.load_training()
         images = np.array(images)/255
-        print(images.shape)
-        dcgan = DCGAN([28, 28, 1], first_block_depth=20, simple_model=True)
-        dcgan.train(images, 50, 100, k=1, type_data = 'MNIST')
+        dcgan = DCGAN([28, 28, 1], first_block_depth=20, dim_noise=300, simple_model=True)
+        dcgan.train(images, 50, 100, k=5, type_data = 'MNIST')
 
     if dataSet == 'CIFAR10':
         path_to_dataset = os.path.join('Datasets', dataSet)
@@ -38,10 +37,11 @@ def main(dataSet = 'CIFAR10'):
                 data = pickle.load(file, encoding='bytes')
                 labels = np.array(data[b'labels'])
                 images = np.append(images, np.array(data[b'data'][np.where(labels == 7)]),axis=0)
+                
         images = images/255
 
         dcgan = DCGAN([32, 32, 3], first_block_depth=20, dim_noise=300, simple_model=True)
-        dcgan.train(images, 300, 100, k=1, type_data = dataSet)
+        dcgan.train(images, 300, 100, k=5, type_data = dataSet)
        
     if dataSet == 'CelebA':
         images = np.load('CelebA_img.npz')['images']
