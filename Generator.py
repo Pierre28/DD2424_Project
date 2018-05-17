@@ -65,8 +65,7 @@ class Generator:
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.depth_layers[3],
                                                           strides=strides[2], padding='same', activation=tf.nn.relu)
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.output_depth,
-                                                          strides=strides[3], padding='same', activation=tf.nn.relu)  # 2 activation functions ????
-                faked_images = tf.nn.tanh(faked_images)
+                                                          strides=strides[3], padding='same', activation=tf.nn.tanh)
         return faked_images
 
     def get_complex_model_parameters(self):
