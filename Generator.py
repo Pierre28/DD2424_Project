@@ -22,7 +22,7 @@ class Generator:
         with tf.variable_scope("generator", reuse=reuse):
             if self.model=="simple":
                 faked_images = tf.layers.dense(z, units=128, activation=tf.nn.relu)
-                faked_images = tf.layers.dense(faked_images, units=self.output_depth*self.output_width*self.output_height, activation=tf.nn.sigmoid)
+                faked_images = tf.layers.dense(faked_images, units=self.output_depth*self.output_height*self.output_width, activation=tf.nn.sigmoid)
                 faked_images = tf.reshape(faked_images, shape=[-1, self.output_height, self.output_width, self.output_depth])
 
             elif self.model=="intermediate":
