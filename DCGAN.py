@@ -4,11 +4,11 @@ import tensorflow as tf
 import numpy as np
 #import inception_model
 import os
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 
 
 class DCGAN():
-    def __init__(self, input_shape, first_block_depth=1024, dim_noise=100, simple_model=True):
+    def __init__(self, input_shape, first_block_depth=1024, dim_noise=100, model="simple"):
         # Dimension of data
         self.output_height = input_shape[0]
         self.output_width = input_shape[1]
@@ -19,8 +19,8 @@ class DCGAN():
 
         self.noise_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.dim_noise], name='noise')
         # Build both components
-        self.discriminator = Discriminator(input_shape, first_block_depth, simple_model=simple_model)
-        self.generator = Generator(input_shape, first_block_depth=512, simple_model=simple_model)
+        self.discriminator = Discriminator(input_shape, first_block_depth, model=model)
+        self.generator = Generator(input_shape, first_block_depth=512, model=model)
         # Construct the graph
         self.build_graph()
 
@@ -41,7 +41,40 @@ class DCGAN():
         self.generator.set_solver()
         self.discriminator.set_solver()
 
-    def train(self, X, n_epochs, batch_size,k=1,type_data = 'MNIST'):
+    def optimize(self, sess, X_batch_values, size_noise, j, previous_D_loss, previous_G_loss, strategy="k_steps", k=1, gap=10):
+        D_curr_loss = previous_D_loss
+        G_curr_loss = previous_G_loss
+
+        # Compute loss and optimize
+        if strategy=="k_steps":
+            noise_batch_values = self.get_noise(size_noise)
+            _, D_curr_loss = sess.run([self.discriminator.solver, self.discriminator.loss],
+                                      feed_dict={self.X_batch: X_batch_values, self.noise_batch: noise_batch_values})
+            noise_batch_values = self.get_noise(size_noise)
+            if j == 1 or j % k == 0:  # Improving G every k steps
+                _, G_curr_loss = sess.run([self.generator.solver, self.generator.loss],
+                                          feed_dict={self.noise_batch: noise_batch_values})
+        elif strategy=="min_gap":
+            if gap*previous_D_loss < previous_G_loss:
+                noise_batch_values = self.get_noise(size_noise)
+                _, G_curr_loss = sess.run([self.generator.solver, self.generator.loss],
+                                          feed_dict={self.noise_batch: noise_batch_values})
+            elif gap*previous_G_loss < previous_D_loss:
+                noise_batch_values = self.get_noise(size_noise)
+                _, D_curr_loss = sess.run([self.discriminator.solver, self.discriminator.loss],
+                                          feed_dict={self.X_batch: X_batch_values, self.noise_batch: noise_batch_values})
+            else:
+                noise_batch_values = self.get_noise(size_noise)
+                _, D_curr_loss = sess.run([self.discriminator.solver, self.discriminator.loss],
+                                          feed_dict={self.X_batch: X_batch_values, self.noise_batch: noise_batch_values})
+                noise_batch_values = self.get_noise(size_noise)
+                _, G_curr_loss = sess.run([self.generator.solver, self.generator.loss], feed_dict={self.noise_batch: noise_batch_values})
+
+        return D_curr_loss, G_curr_loss
+
+    def train(self, X, n_epochs, batch_size, k=1, gap=5, strategy="k_steps", type_data = 'MNIST'):
+        D_curr_loss = 0
+        G_curr_loss = 0
         # Initialize variables and Tensorboard
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
@@ -55,22 +88,14 @@ class DCGAN():
                     j_start = (j - 1) * batch_size
                     j_end = j * batch_size
                     # Get data
-                    # X_batch_values, _ = X.train.next_batch(n_epochs)
                     X_batch_values = X[j_start:j_end]  # Shape (-1, n_dim)
-                    noise_batch_values = self.get_noise(j_end - j_start)
                     # Compute loss and optimize
-                    _, D_curr_loss = sess.run([self.discriminator.solver, self.discriminator.loss], feed_dict={self.X_batch: X_batch_values, self.noise_batch: noise_batch_values})
-                    noise_batch_values = self.get_noise(j_end - j_start)
-
-                    if j == 1 or j%k == 0:    # improving G every k steps
-                        _, G_curr_loss = sess.run([self.generator.solver, self.generator.loss], feed_dict={self.noise_batch: noise_batch_values})
-
-                    if j%10 == 0:
+                    D_curr_loss, G_curr_loss = self.optimize(sess, X_batch_values, j_end - j_start, j, D_curr_loss,
+                                                             G_curr_loss, strategy=strategy, k=k, gap=gap)
+                    if j%100 == 0:
                         print(str(j) + '/' + str(max_j-1) + ' : cost D=' + str(D_curr_loss) + ' - cost G=' + str(G_curr_loss) + '\n')
-                        
-                        
                 if i%2 == 0:        
-                    self.display_generated_images(sess, i, type_data = type_data)  # Store generated images after each epoch
+                    self.display_generated_images(sess, i, type_data=type_data)  # Store generated images after each epoch
 
             # Value in image to low to compute inception score
             # mean, std = self.compute_inception_score(sess)
@@ -79,7 +104,7 @@ class DCGAN():
     def compute_inception_score(self, sess):
         # Raise error if model not trained ?
         noise_batch_values = self.get_noise(100)
-        images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
+        images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False), feed_dict={self.noise_batch: noise_batch_values})
         list_images = [np.append(np.array(image*127 + 128, dtype='int32').reshape((1, 28, 28)), np.zeros((2,28,28)), axis=0) for image in images]
         return inception_model.get_inception_score(list_images)  # mean, std
 
@@ -95,7 +120,7 @@ class DCGAN():
             plt.savefig(os.path.join('generated_img', 'MNIST', 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
 
-        if type_data == 'CIFAR10':
+        elif type_data == 'CIFAR10':
             if not os.path.exists(os.path.join('generated_img', 'CIFAR10')):
                 os.makedirs(os.path.join('generated_img', 'CIFAR10'))
                 

@@ -2,8 +2,8 @@ import tensorflow as tf
 
 
 class Discriminator:
-    def __init__(self, input_shape, first_block_depth=1024, simple_model=True):
-        self.simple_model = simple_model
+    def __init__(self, input_shape, first_block_depth=1024, model="simple"):
+        self.model = model
         # Dimension of data
         self.output_height = input_shape[0]
         self.output_width = input_shape[1]
@@ -18,13 +18,32 @@ class Discriminator:
     def compute_probability(self, image, nb_filters=64, reuse=tf.AUTO_REUSE):
         # Reuse = tf.AUTO_REUSE necessary to initialize both fake and real image
         with tf.variable_scope("discriminator", reuse=reuse):
-            if self.simple_model:
+            if self.model=="simple":
                 image = tf.contrib.layers.flatten(image)
                 logits_of_real = tf.layers.dense(image, units=128, activation=tf.nn.relu)
                 logits_of_real = tf.layers.dense(logits_of_real, units=1)
                 proba_of_real = tf.nn.sigmoid(logits_of_real)
 
-            else:
+            elif self.model=="intermediate":
+                dropout_probability = 0.6
+                image = tf.reshape(image, shape=[-1, self.output_height, self.output_width, self.output_depth])
+                # Convolutions
+                logits_of_real = tf.layers.conv2d(image, kernel_size=5, filters=64, strides=2, padding='same',
+                                                  activation=tf.nn.leaky_relu)
+                logits_of_real = tf.layers.dropout(logits_of_real, dropout_probability, training=True)
+                logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=64, strides=1, padding='same',
+                                                  activation=tf.nn.leaky_relu)
+                logits_of_real = tf.layers.dropout(logits_of_real, dropout_probability, training=True)
+                logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=64, strides=1, padding='same',
+                                                  activation=tf.nn.leaky_relu)
+                logits_of_real = tf.layers.dropout(logits_of_real, dropout_probability, training=True)
+                # Feed-forward layers
+                logits_of_real = tf.contrib.layers.flatten(logits_of_real)
+                logits_of_real = tf.layers.dense(logits_of_real, units=128, activation=tf.nn.leaky_relu)
+                logits_of_real = tf.layers.dense(logits_of_real, units=1)
+                proba_of_real = tf.nn.sigmoid(logits_of_real)
+
+            elif self.model=="dcgan":
                 image = tf.reshape(image, shape=[-1, self.output_height, self.output_width, self.output_depth])
                 logits_of_real = tf.layers.conv2d(image, kernel_size=5, filters=nb_filters, strides=2, padding='same', activation=tf.nn.leaky_relu)
                 #proba_of_real = tf.layers.conv2d(proba_of_real, kernel_size=5, filters=nb_filters*2, strides=1, padding='same', activation=tf.nn.leaky_relu)
@@ -47,9 +66,6 @@ class Discriminator:
                                                                            name='loss_discri_fake_img'),
                                    name='gradient_discri_fake_img')
         self.loss = real_loss + fake_loss
-        
-        
-        
 
     def set_solver(self):
         self.variables = [var for var in tf.trainable_variables() if var.name.startswith("discriminator")]
