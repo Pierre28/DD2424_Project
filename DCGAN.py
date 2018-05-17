@@ -72,7 +72,7 @@ class DCGAN():
 
         return D_curr_loss, G_curr_loss
 
-    def train(self, X, n_epochs, batch_size, k=1, gap=5, strategy="k_steps", type_data = 'MNIST'):
+    def train(self, X, n_epochs, batch_size, k=1, gap=5, strategy="k_steps", type_data='MNIST'):
         D_curr_loss = 0
         G_curr_loss = 0
         # Initialize variables and Tensorboard
@@ -108,7 +108,7 @@ class DCGAN():
         list_images = [np.append(np.array(image*127 + 128, dtype='int32').reshape((1, 28, 28)), np.zeros((2,28,28)), axis=0) for image in images]
         return inception_model.get_inception_score(list_images)  # mean, std
 
-    def display_generated_images(self, sess, n_epoch, n_images=16, type_data = 'MNIST'):
+    def display_generated_images(self, sess, n_epoch, n_images=16, type_data='MNIST'):
         print("display")
         if type_data == 'MNIST':
             if not os.path.exists(os.path.join('generated_img', 'MNIST')):
@@ -123,10 +123,9 @@ class DCGAN():
         elif type_data == 'CIFAR10':
             if not os.path.exists(os.path.join('generated_img', 'CIFAR10')):
                 os.makedirs(os.path.join('generated_img', 'CIFAR10'))
-                
             noise_batch_values = self.get_noise(n_images)
             faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
-            displayable_images = np.reshape(faked_images,(-1,3,32,32)).transpose(0,2,3,1)
+            displayable_images = np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1)
             fig = self.plot(displayable_images)
             plt.savefig(os.path.join('generated_img', 'CIFAR10', 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
@@ -136,12 +135,11 @@ class DCGAN():
         size = np.sqrt(len(samples))
         assert (np.ceil(size) == size), "change image number"
         size = int(size)
-        fig, axes = plt.subplots(size, size, figsize=(7,7))
+        fig, axes = plt.subplots(size, size, figsize=(7, 7))
         i = 0
         for j in range(size):
             for k in range(size):
                 axes[j][k].set_axis_off()
                 axes[j][k].imshow(samples[i], cmap='Greys_r')
                 i += 1
-
         return fig
