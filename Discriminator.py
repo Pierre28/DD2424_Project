@@ -47,8 +47,11 @@ class Discriminator:
             elif self.model=="dcgan":
                 image = tf.reshape(image, shape=[-1, self.output_height, self.output_width, self.output_depth])
                 logits_of_real = tf.layers.conv2d(image, kernel_size=5, filters=self.depth_layers[0], strides=2, padding='same', activation=tf.nn.leaky_relu)
+                logits_of_real = tf.layers.batch_normalization(logits_of_real)
                 logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=self.depth_layers[1], strides=1, padding='same', activation=tf.nn.leaky_relu)
+                logits_of_real = tf.layers.batch_normalization(logits_of_real)
                 logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=self.depth_layers[2], strides=1, padding='same', activation=tf.nn.leaky_relu)
+                logits_of_real = tf.layers.batch_normalization(logits_of_real)
                 logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=self.depth_layers[3], strides=1, padding='same', activation=tf.nn.leaky_relu)
                 logits_of_real = tf.contrib.layers.flatten(logits_of_real)
                 logits_of_real = tf.layers.dense(logits_of_real, units=1)

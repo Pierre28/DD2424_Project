@@ -52,19 +52,21 @@ class Generator:
                                                           padding='same', activation=tf.nn.sigmoid)
 
             elif self.model=="dcgan":
-                dim_first_layer, strides = self.get_complex_model_parameters()
+                dim_first_layer, strides, kernel_size = self.get_complex_model_parameters()
                 # Projection of noise and proper reshaping
                 faked_images = tf.layers.dense(z, units=self.depth_layers[0]*dim_first_layer[0]*dim_first_layer[1], activation=tf.nn.relu)
                 faked_images = tf.reshape(faked_images, shape=[-1, dim_first_layer[0], dim_first_layer[1], self.depth_layers[0]])
 
                 # Fractional-strided convolutions/Deconvolutions
-                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.depth_layers[1],
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[0], filters=self.depth_layers[1],
                                                           strides=strides[0], padding='same', activation=tf.nn.relu)
-                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.depth_layers[2],
+                faked_images = tf.layers.batch_normalization(faked_images, training =is_training)
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[1], filters=self.depth_layers[2],
                                                           strides=strides[1], padding='same', activation=tf.nn.relu)
-                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.depth_layers[3],
+                faked_images = tf.layers.batch_normalization(faked_images, training =is_training)
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[2], filters=self.depth_layers[3],
                                                           strides=strides[2], padding='same', activation=tf.nn.relu)
-                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.output_depth,
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[3], filters=self.output_depth,
                                                           strides=strides[3], padding='same', activation=tf.nn.tanh)
         return faked_images
 
@@ -72,7 +74,21 @@ class Generator:
         if self.data=="MNIST":
             dim_first_layer = (7, 7)
             strides = [2, 2, 1, 1]
-            return dim_first_layer, strides
+            kernel_size = [5, 5, 5, 5]
+            return dim_first_layer, strides, kernel_size
+
+        if self.data == "CIFAR10":
+            dim_first_layer = (2, 2)
+            strides = [2, 2, 2, 2]
+            kernel_size = [5, 5, 5, 5]
+            return dim_first_layer, strides, kernel_size
+
+
+        if self.data == "CelebA":
+            dim_first_layer = (8, 7)
+            strides = [(2,2), (2,2), (3,3), (2,2)]
+            kernel_size = [(5,5), (5,5), (6,5), (5,5)]
+            return dim_first_layer, strides, kernel_size
 
 
     def set_loss(self, fake_images_logits):
