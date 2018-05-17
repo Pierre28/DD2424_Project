@@ -5,7 +5,7 @@ class Generator:
     def __init__(self, input_shape, first_block_depth=1024, model="simple"):
         self.model = model
         # Dimension of data
-        self.output_height= input_shape[0]
+        self.output_height = input_shape[0]
         self.output_width = input_shape[1]
         self.output_depth = input_shape[2]
         # Parameters of layer
