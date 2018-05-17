@@ -5,7 +5,8 @@ class Discriminator:
     def __init__(self, input_shape, first_block_depth=1024, simple_model=True):
         self.simple_model = simple_model
         # Dimension of data
-        self.output_side = input_shape[0]
+        self.output_height = input_shape[0]
+        self.output_width = input_shape[1]
         self.output_depth = input_shape[2]
         # Parameters of layer
         self.blocks_depth = [int(first_block_depth/2**i) for i in range(4)] + [self.output_depth]
@@ -24,7 +25,7 @@ class Discriminator:
                 proba_of_real = tf.nn.sigmoid(logits_of_real)
 
             else:
-                image = tf.reshape(image, shape=[-1, self.output_side, self.output_side, self.output_depth])
+                image = tf.reshape(image, shape=[-1, self.output_height, self.output_width, self.output_depth])
                 logits_of_real = tf.layers.conv2d(image, kernel_size=5, filters=nb_filters, strides=2, padding='same', activation=tf.nn.leaky_relu)
                 #proba_of_real = tf.layers.conv2d(proba_of_real, kernel_size=5, filters=nb_filters*2, strides=1, padding='same', activation=tf.nn.leaky_relu)
                 #proba_of_real = tf.layers.conv2d(proba_of_real, kernel_size=5, filters=nb_filters*4, strides=1, padding='same', activation=tf.nn.leaky_relu)

@@ -10,11 +10,12 @@ import matplotlib.pyplot as plt
 class DCGAN():
     def __init__(self, input_shape, first_block_depth=1024, dim_noise=100, simple_model=True):
         # Dimension of data
-        self.output_side = input_shape[0]
+        self.output_height = input_shape[0]
+        self.output_width = input_shape[1]
         self.output_depth = input_shape[2]
         self.dim_noise = dim_noise
         # Build input variables
-        self.X_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.output_depth*self.output_side**2], name='X')
+        self.X_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.output_depth*self.output_depth*self.output_width], name='X')
 
         self.noise_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.dim_noise], name='noise')
         # Build both components
