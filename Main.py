@@ -16,13 +16,13 @@ def main(dataSet='MNIST'):
         path_to_dataset = os.path.join('Datasets', dataSet)
 
         mndata = MNIST(path_to_dataset)
-        mndata.gz = True # Données en format .gz dans le dossier Datasets\MNIST
+        mndata.gz = True  # Données en format .gz dans le dossier Datasets\MNIST
         images, _ = mndata.load_training()
         images = np.array(images)/255
-        dcgan = DCGAN([28, 28, 1], first_block_depth=20, dim_noise=300, model="simple")
-        dcgan.train(images, 50, 100, k=5, type_data='MNIST')
+        dcgan = DCGAN([28, 28, 1], first_block_depth=20, dim_noise=100, model="intermediate")
+        dcgan.train(images, 50, 100, k=1, type_data='MNIST')
 
-    if dataSet == 'CIFAR10':
+    elif dataSet == 'CIFAR10':
         path_to_dataset = os.path.join('Datasets', dataSet)
 
         paths_to_batch = [os.path.join(path_to_dataset, f)for f in listdir(path_to_dataset) if f[0:10] == 'data_batch']
@@ -43,7 +43,7 @@ def main(dataSet='MNIST'):
         dcgan = DCGAN([32, 32, 3], first_block_depth=20, dim_noise=300, model="simple")
         dcgan.train(images, 300, 100, k=5, type_data=dataSet)
        
-    if dataSet == 'CelebA':
+    elif dataSet == 'CelebA':
         images = np.load('CelebA_img.npz')['images']
         images = np.array(images)/255
         dcgan = DCGAN([218, 178, 3], first_block_depth=20, dim_noise=400, model="simple")
@@ -51,4 +51,4 @@ def main(dataSet='MNIST'):
 
 
 if __name__ == '__main__':
-    main('CelebA')
+    main()

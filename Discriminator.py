@@ -69,4 +69,8 @@ class Discriminator:
 
     def set_solver(self):
         self.variables = [var for var in tf.trainable_variables() if var.name.startswith("discriminator")]
-        self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_discriminator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam
+        if self.model == "simple":
+            self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_discriminator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam
+        elif self.model=="intermediate":
+            self.solver = tf.train.RMSPropOptimizer(learning_rate=0.00015).minimize(self.loss, var_list=self.variables,
+                                                                                    name='solver_discriminator')

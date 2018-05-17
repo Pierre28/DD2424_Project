@@ -22,8 +22,8 @@ class Generator:
         with tf.variable_scope("generator", reuse=reuse):
             if self.model=="simple":
                 faked_images = tf.layers.dense(z, units=128, activation=tf.nn.relu)
-                faked_images = tf.layers.dense(faked_images, units=self.output_depth*self.output_side**2, activation=tf.nn.sigmoid)
-                faked_images = tf.reshape(faked_images, shape=[-1, self.output_side, self.output_side, self.output_depth])
+                faked_images = tf.layers.dense(faked_images, units=self.output_depth*self.output_width*self.output_height, activation=tf.nn.sigmoid)
+                faked_images = tf.reshape(faked_images, shape=[-1, self.output_height, self.output_width, self.output_depth])
 
             elif self.model=="intermediate":
                 activation = tf.nn.leaky_relu
@@ -74,4 +74,9 @@ class Generator:
 
     def set_solver(self):
         self.variables = [var for var in tf.trainable_variables() if var.name.startswith("generator")]
-        self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_generator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam
+        if self.model == "simple":
+            self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_generator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam
+        elif self.model=="intermediate":
+            self.solver = tf.train.RMSPropOptimizer(learning_rate=0.00015).minimize(self.loss,
+                                                                                    var_list=self.variables,
+                                                                                    name='solver_generator')

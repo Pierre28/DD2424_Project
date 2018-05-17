@@ -15,8 +15,7 @@ class DCGAN():
         self.output_depth = input_shape[2]
         self.dim_noise = dim_noise
         # Build input variables
-        self.X_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.output_depth*self.output_depth*self.output_width], name='X')
-
+        self.X_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.output_depth*self.output_height*self.output_width], name='X')
         self.noise_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.dim_noise], name='noise')
         # Build both components
         self.discriminator = Discriminator(input_shape, first_block_depth, model=model)
@@ -109,7 +108,7 @@ class DCGAN():
         return inception_model.get_inception_score(list_images)  # mean, std
 
     def display_generated_images(self, sess, n_epoch, n_images=16, type_data='MNIST'):
-        print("display")
+        print("Display generated image")
         if type_data == 'MNIST':
             if not os.path.exists(os.path.join('generated_img', 'MNIST')):
                 os.makedirs(os.path.join('generated_img', 'MNIST'))
