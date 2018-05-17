@@ -2,15 +2,16 @@ import tensorflow as tf
 import numpy as np 
 
 class Generator:
-    def __init__(self, input_shape, first_block_depth=1024, model="simple"):
+    def __init__(self, input_shape, depth_layers=[1024, 512, 256, 128], model="simple", data="MNIST"):
+        # Global model
         self.model = model
+        self.data = data
         # Dimension of data
         self.output_height = input_shape[0]
         self.output_width = input_shape[1]
         self.output_depth = input_shape[2]
         # Parameters of layer
-        self.blocks_depth = [int(first_block_depth/2**i) for i in range(2)] + [self.output_depth]
-        #self.blocks_size = [int(self.output_height/2**i) for i in range(3)][::-1]
+        self.depth_layers = depth_layers
         self.blocks_size = [7, 14, 28]
         # Necessary variables to build graph
         self.variables = []
@@ -29,7 +30,7 @@ class Generator:
                 activation = tf.nn.leaky_relu
                 d1 = 4
                 d2 = 1
-                dropout_probability = 0.6
+                dropout_probability = 0.4
                 faked_images = tf.layers.dense(z, units=d1 * d1 * d2, activation=activation)
                 faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
                 faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
@@ -51,21 +52,29 @@ class Generator:
                                                           padding='same', activation=tf.nn.sigmoid)
 
             elif self.model=="dcgan":
+                dim_first_layer, strides = self.get_complex_model_parameters()
                 # Projection of noise and proper reshaping
-                faked_images = tf.layers.dense(z, units=self.blocks_depth[0]*(self.blocks_size[0]**2), activation=tf.nn.relu)
-                faked_images = tf.reshape(faked_images, shape=[-1, self.blocks_size[0], self.blocks_size[0], self.blocks_depth[0]])
+                faked_images = tf.layers.dense(z, units=self.depth_layers[0]*dim_first_layer[0]*dim_first_layer[1], activation=tf.nn.relu)
+                faked_images = tf.reshape(faked_images, shape=[-1, dim_first_layer[0], dim_first_layer[1], self.depth_layers[0]])
 
                 # Fractional-strided convolutions/Deconvolutions
-                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.blocks_depth[1], strides=2,
-                                                        padding='same', activation=tf.nn.relu)
-                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.blocks_depth[2], strides=2,
-                                                        padding='same', activation=tf.nn.relu)
-                # output_gen = tf.layers.conv2d_transpose(output_gen, kernel_size=5, filters=self.blocks_depth[3], strides=2,
-                #                                         padding='same', activation=tf.nn.relu)
-                # output_gen = tf.layers.conv2d_transpose(output_gen, kernel_size=5, filters=self.blocks_depth[4], strides=2,
-                #                                         padding='same', activation=tf.nn.relu)
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.depth_layers[1],
+                                                          strides=strides[0], padding='same', activation=tf.nn.relu)
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.depth_layers[2],
+                                                          strides=strides[1], padding='same', activation=tf.nn.relu)
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.depth_layers[3],
+                                                          strides=strides[2], padding='same', activation=tf.nn.relu)
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.output_depth,
+                                                          strides=strides[3], padding='same', activation=tf.nn.relu)  # 2 activation functions ????
                 faked_images = tf.nn.tanh(faked_images)
         return faked_images
+
+    def get_complex_model_parameters(self):
+        if self.data=="MNIST":
+            dim_first_layer = (7, 7)
+            strides = [2, 2, 1, 1]
+            return dim_first_layer, strides
+
 
     def set_loss(self, fake_images_logits):
         self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_images_logits,
@@ -75,8 +84,12 @@ class Generator:
     def set_solver(self):
         self.variables = [var for var in tf.trainable_variables() if var.name.startswith("generator")]
         if self.model == "simple":
-            self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_generator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam
+            self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_generator')
         elif self.model=="intermediate":
             self.solver = tf.train.RMSPropOptimizer(learning_rate=0.00015).minimize(self.loss,
                                                                                     var_list=self.variables,
                                                                                     name='solver_generator')
+        elif self.model == "dcgan":
+            self.solver = tf.train.AdamOptimizer(learning_rate=0.0002, beta1=0.5).minimize(self.loss,
+                                                                                           var_list=self.variables,
+                                                                                           name='solver_generator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam

@@ -2,14 +2,15 @@ import tensorflow as tf
 
 
 class Discriminator:
-    def __init__(self, input_shape, first_block_depth=1024, model="simple"):
+    def __init__(self, input_shape, depth_layers=[64, 128, 256, 512], model="simple"):
+        # Global model
         self.model = model
         # Dimension of data
         self.output_height = input_shape[0]
         self.output_width = input_shape[1]
         self.output_depth = input_shape[2]
         # Parameters of layer
-        self.blocks_depth = [int(first_block_depth/2**i) for i in range(4)] + [self.output_depth]
+        self.depth_layers = depth_layers
         # Necessary variables to build graph
         self.variables = []
         self.loss = 0
@@ -45,10 +46,10 @@ class Discriminator:
 
             elif self.model=="dcgan":
                 image = tf.reshape(image, shape=[-1, self.output_height, self.output_width, self.output_depth])
-                logits_of_real = tf.layers.conv2d(image, kernel_size=5, filters=nb_filters, strides=2, padding='same', activation=tf.nn.leaky_relu)
-                #proba_of_real = tf.layers.conv2d(proba_of_real, kernel_size=5, filters=nb_filters*2, strides=1, padding='same', activation=tf.nn.leaky_relu)
-                #proba_of_real = tf.layers.conv2d(proba_of_real, kernel_size=5, filters=nb_filters*4, strides=1, padding='same', activation=tf.nn.leaky_relu)
-                #proba_of_real = tf.layers.conv2d(proba_of_real, kernel_size=5, filters=nb_filters*8, strides=1, padding='same', activation=tf.nn.leaky_relu)
+                logits_of_real = tf.layers.conv2d(image, kernel_size=5, filters=self.depth_layers[0], strides=2, padding='same', activation=tf.nn.leaky_relu)
+                logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=self.depth_layers[1], strides=1, padding='same', activation=tf.nn.leaky_relu)
+                logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=self.depth_layers[2], strides=1, padding='same', activation=tf.nn.leaky_relu)
+                logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=self.depth_layers[3], strides=1, padding='same', activation=tf.nn.leaky_relu)
                 logits_of_real = tf.contrib.layers.flatten(logits_of_real)
                 logits_of_real = tf.layers.dense(logits_of_real, units=1)
 
@@ -70,7 +71,11 @@ class Discriminator:
     def set_solver(self):
         self.variables = [var for var in tf.trainable_variables() if var.name.startswith("discriminator")]
         if self.model == "simple":
-            self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_discriminator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam
+            self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_discriminator')
         elif self.model=="intermediate":
             self.solver = tf.train.RMSPropOptimizer(learning_rate=0.00015).minimize(self.loss, var_list=self.variables,
                                                                                     name='solver_discriminator')
+        elif self.model == "dcgan":
+            self.solver = tf.train.AdamOptimizer(learning_rate=0.0002, beta1=0.5).minimize(self.loss,
+                                                                                           var_list=self.variables,
+                                                                                           name='solver_generator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam

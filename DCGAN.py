@@ -8,7 +8,11 @@ import matplotlib.pyplot as plt
 
 
 class DCGAN():
-    def __init__(self, input_shape, first_block_depth=1024, dim_noise=100, model="simple"):
+    def __init__(self, input_shape, depth_layers_discriminator=[64, 128, 256, 512], depth_layers_generator=[1024, 512, 256, 128],
+                 dim_noise=100, model="simple", data="MNIST"):
+        # Global model
+        self.model = model
+        self.data = data
         # Dimension of data
         self.output_height = input_shape[0]
         self.output_width = input_shape[1]
@@ -18,8 +22,8 @@ class DCGAN():
         self.X_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.output_depth*self.output_height*self.output_width], name='X')
         self.noise_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.dim_noise], name='noise')
         # Build both components
-        self.discriminator = Discriminator(input_shape, first_block_depth, model=model)
-        self.generator = Generator(input_shape, first_block_depth=512, model=model)
+        self.discriminator = Discriminator(input_shape, depth_layers_discriminator, model=model)
+        self.generator = Generator(input_shape, depth_layers=depth_layers_generator, model=model, data=data)
         # Construct the graph
         self.build_graph()
 
@@ -71,7 +75,13 @@ class DCGAN():
 
         return D_curr_loss, G_curr_loss
 
-    def train(self, X, n_epochs, batch_size, k=1, gap=5, strategy="k_steps", type_data='MNIST'):
+    def train(self, X, n_epochs, batch_size, k=1, gap=5, strategy="k_steps", is_data_normalized=False):
+        # Normalize input data
+        if not is_data_normalized:
+            if self.model=="dcgan":
+                X = (X - 127.5) / 127.5
+            else:
+                X = X/255
         D_curr_loss = 0
         G_curr_loss = 0
         # Initialize variables and Tensorboard
@@ -93,8 +103,7 @@ class DCGAN():
                                                              G_curr_loss, strategy=strategy, k=k, gap=gap)
                     if j%100 == 0:
                         print(str(j) + '/' + str(max_j-1) + ' : cost D=' + str(D_curr_loss) + ' - cost G=' + str(G_curr_loss) + '\n')
-                if i%2 == 0:        
-                    self.display_generated_images(sess, i, type_data=type_data)  # Store generated images after each epoch
+                self.display_generated_images(sess, i)  # Store generated images after each epoch
 
             # Value in image to low to compute inception score
             # mean, std = self.compute_inception_score(sess)
@@ -107,24 +116,30 @@ class DCGAN():
         list_images = [np.append(np.array(image*127 + 128, dtype='int32').reshape((1, 28, 28)), np.zeros((2,28,28)), axis=0) for image in images]
         return inception_model.get_inception_score(list_images)  # mean, std
 
-    def display_generated_images(self, sess, n_epoch, n_images=16, type_data='MNIST'):
+    def display_generated_images(self, sess, n_epoch, n_images=16):
         print("Display generated image")
-        if type_data == 'MNIST':
+        if self.data == 'MNIST':
             if not os.path.exists(os.path.join('generated_img', 'MNIST')):
                 os.makedirs(os.path.join('generated_img', 'MNIST'))
             noise_batch_values = self.get_noise(n_images)
             faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
-            displayable_images = [np.array(image*127 + 128, dtype='int32').reshape((28, 28)) for image in faked_images]
+            if self.model=="dcgan":
+                displayable_images = [np.array((image + 1)/2*127 + 128, dtype='int32').reshape((28, 28)) for image in faked_images]
+            else:
+                displayable_images = [np.array(image*127 + 128, dtype='int32').reshape((28, 28)) for image in faked_images]
             fig = self.plot(displayable_images)
             plt.savefig(os.path.join('generated_img', 'MNIST', 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
 
-        elif type_data == 'CIFAR10':
+        elif self.data == 'CIFAR10':
             if not os.path.exists(os.path.join('generated_img', 'CIFAR10')):
                 os.makedirs(os.path.join('generated_img', 'CIFAR10'))
             noise_batch_values = self.get_noise(n_images)
             faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
-            displayable_images = np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1)
+            if self.model=="dcgan":
+                displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1) + 1)/2*127 + 128
+            else:
+                displayable_images = np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1)*127 + 128
             fig = self.plot(displayable_images)
             plt.savefig(os.path.join('generated_img', 'CIFAR10', 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
