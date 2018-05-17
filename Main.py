@@ -38,14 +38,14 @@ def main(dataSet='MNIST', model="simple"):
                 labels = np.array(data[b'labels'])
                 images = np.append(images, np.array(data[b'data'][np.where(labels == 7)]),axis=0)
                 
-        images = images/255
+        images = images
 
         dcgan = DCGAN([32, 32, 3], dim_noise=300, model=model, data=dataSet)
         dcgan.train(images, 300, 100, k=5)
        
     elif dataSet == 'CelebA':
         images = np.load('CelebA_img.npz')['images']
-        images = np.array(images)/255
+        images = np.array(images)
         dcgan = DCGAN([218, 178, 3], dim_noise=400, model=model, data=dataSet)
         dcgan.train(images, 300, 100, k=1)
 
