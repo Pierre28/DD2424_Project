@@ -75,13 +75,13 @@ class DCGAN():
 
         return D_curr_loss, G_curr_loss
 
-    def train(self, X, n_epochs, batch_size, k=1, gap=5, strategy="k_steps", is_data_normalized=False, compute_inception_score=False):
+    def train(self, X, n_epochs, batch_size, k=1, gap=5, strategy="k_steps", is_data_normalized=False, compute_inception_score=False, saving_model=False):
         # Normalize input data
         if not is_data_normalized:
-            if self.model=="dcgan":
-                X = (X - 127.5) / 127.5
-            else:
+            if self.model=="simple":
                 X = X/255
+            else:
+                X = (X - 127.5) / 127.5
         # Initialize variables and Tensorboard
         D_curr_loss = 0
         G_curr_loss = 0
@@ -99,7 +99,7 @@ class DCGAN():
                     j_start = (j - 1) * batch_size
                     j_end = j * batch_size
                     # Get data
-                    X_batch_values = X[j_start:j_end].reshape((batch_size, -1))  # Shape (-1, n_dim) # Error here
+                    X_batch_values = X[j_start:j_end, :] # Shape (-1, n_dim)
                     # Compute loss and optimize
                     D_curr_loss, G_curr_loss = self.optimize(sess, X_batch_values, j_end - j_start, j, D_curr_loss,
                                                              G_curr_loss, strategy=strategy, k=k, gap=gap)
@@ -119,12 +119,13 @@ class DCGAN():
                     np.save(file_path, inception_scores)
 
                 # Saving model
-                model_saved_location = os.path.join('save', self.model, self.data, 'model')
-                if not os.path.exists(model_saved_location):
-                    os.makedirs(model_saved_location)
-                    
-                path = saver.save(sess, os.path.join(model_saved_location, strategy+'_epoch'), global_step=i)
-                print("Model saved in path: %s\n" % path)
+                if saving_model:
+                    model_saved_location = os.path.join('save', self.model, self.data, 'model')
+                    if not os.path.exists(model_saved_location):
+                        os.makedirs(model_saved_location)
+
+                    path = saver.save(sess, os.path.join(model_saved_location, strategy+'_epoch'), global_step=i)
+                    print("Model saved in path: %s\n" % path)
                 
             # Value in image to low to compute inception score
             mean, std = self.compute_inception_score(sess)
@@ -150,10 +151,10 @@ class DCGAN():
                 os.makedirs(os.path.join('generated_img', 'MNIST'))
             noise_batch_values = self.get_noise(n_images)
             faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
-            if self.model=="dcgan":
-                displayable_images = [np.array((image + 1)/2*127 + 128, dtype='int32').reshape((28, 28)) for image in faked_images]
+            if self.model == "simple":
+                displayable_images = [np.array(image * 127 + 128, dtype='int32').reshape((28, 28)) for image in faked_images]
             else:
-                displayable_images = [np.array(image*127 + 128, dtype='int32').reshape((28, 28)) for image in faked_images]
+                displayable_images = [np.array(image*127.5 + 127.5, dtype='int32').reshape((28, 28)) for image in faked_images]
             fig = self.plot(displayable_images)
             plt.savefig(os.path.join('generated_img', 'MNIST', 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)

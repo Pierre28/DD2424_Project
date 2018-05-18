@@ -18,9 +18,9 @@ def main(dataSet='MNIST', model="simple"):
         mndata = MNIST(path_to_dataset)
         mndata.gz = True  # Données en format .gz dans le dossier Datasets\MNIST
         images, _ = mndata.load_training()
-        images = np.array(images[:20])
+        images = np.array(images)
         dcgan = DCGAN([28, 28, 1], dim_noise=100, model=model, data=dataSet)
-        dcgan.train(images, 1, 5, k=1, compute_inception_score=True)
+        dcgan.train(images, 20, 100, k=1, compute_inception_score=False, saving_model=False)
 
     elif dataSet == 'CIFAR10':
         path_to_dataset = os.path.join('Datasets', dataSet)
@@ -51,4 +51,4 @@ def main(dataSet='MNIST', model="simple"):
 
 
 if __name__ == '__main__':
-    main(dataSet='MNIST', model="simple")
+    main(dataSet='MNIST', model="intermediate")

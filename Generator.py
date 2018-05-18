@@ -27,29 +27,21 @@ class Generator:
                 faked_images = tf.reshape(faked_images, shape=[-1, self.output_height, self.output_width, self.output_depth])
 
             elif self.model=="intermediate":
-                activation = tf.nn.leaky_relu
-                d1 = 4
-                d2 = 1
-                dropout_probability = 0.4
-                faked_images = tf.layers.dense(z, units=d1 * d1 * d2, activation=activation)
+                activation = tf.nn.relu  # leaky_relu
+                dropout_probability = 0.2
+                # Projection of noise and proper reshaping
+                faked_images = tf.layers.dense(z, units=self.output_width*self.output_height*128/16, activation=activation)
                 faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
                 faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
-                faked_images = tf.reshape(faked_images, shape=[-1, d1, d1, d2])
-                faked_images = tf.image.resize_images(faked_images, size=[7, 7])
+                faked_images = tf.reshape(faked_images, shape=[-1, int(self.output_height/4), int(self.output_width/4), 128])
+                # Convolution 1
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=64, strides=2,
                                                           padding='same', activation=activation)
                 faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
                 faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
-                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=64, strides=2,
-                                                          padding='same', activation=activation)
-                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
-                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=64, strides=1,
-                                                          padding='same', activation=activation)
-                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
-                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=1, strides=1,
-                                                          padding='same', activation=tf.nn.sigmoid)
+                # Convolution 2
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=1, strides=2,
+                                                          padding='same', activation=tf.nn.tanh)
 
             elif self.model=="dcgan":
                 dim_first_layer, strides, kernel_size = self.get_complex_model_parameters()
@@ -99,9 +91,10 @@ class Generator:
         if self.model == "simple":
             self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_generator')
         elif self.model=="intermediate":
-            self.solver = tf.train.RMSPropOptimizer(learning_rate=0.00015).minimize(self.loss,
-                                                                                    var_list=self.variables,
-                                                                                    name='solver_generator')
+            self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_generator')
+            # self.solver = tf.train.RMSPropOptimizer(learning_rate=0.00015).minimize(self.loss,
+            #                                                                         var_list=self.variables,
+            #                                                                         name='solver_generator')
         elif self.model == "dcgan":
             self.solver = tf.train.AdamOptimizer(learning_rate=0.0002, beta1=0.5).minimize(self.loss,
                                                                                            var_list=self.variables,
