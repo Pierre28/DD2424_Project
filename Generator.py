@@ -77,19 +77,17 @@ class Generator:
             kernel_size = [5, 5, 5, 5]
             return dim_first_layer, strides, kernel_size
 
-        if self.data == "CIFAR10":
+        elif self.data == "CIFAR10":
             dim_first_layer = (2, 2)
             strides = [2, 2, 2, 2]
             kernel_size = [5, 5, 5, 5]
             return dim_first_layer, strides, kernel_size
 
-
-        if self.data == "CelebA":
+        elif self.data == "CelebA":
             dim_first_layer = (8, 7)
             strides = [(2,2), (2,2), (3,3), (2,2)]
             kernel_size = [(5,5), (5,5), (6,5), (5,5)]
             return dim_first_layer, strides, kernel_size
-
 
     def set_loss(self, fake_images_logits):
         self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_images_logits,

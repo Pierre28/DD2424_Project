@@ -20,7 +20,7 @@ def main(dataSet='MNIST', model="simple"):
         images, _ = mndata.load_training()
         images = np.array(images[:20])
         dcgan = DCGAN([28, 28, 1], dim_noise=100, model=model, data=dataSet)
-        dcgan.train(images, 1, 5, k=1)
+        dcgan.train(images, 1, 5, k=1, compute_inception_score=True)
 
     elif dataSet == 'CIFAR10':
         path_to_dataset = os.path.join('Datasets', dataSet)
@@ -51,4 +51,4 @@ def main(dataSet='MNIST', model="simple"):
 
 
 if __name__ == '__main__':
-    main(dataSet = 'CelebA', model="dcgan")
+    main(dataSet='MNIST', model="simple")

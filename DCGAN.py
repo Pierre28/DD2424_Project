@@ -75,21 +75,18 @@ class DCGAN():
 
         return D_curr_loss, G_curr_loss
 
-    def train(self, X, n_epochs, batch_size, k=1, gap=5, strategy="k_steps", is_data_normalized=False, compute_inception_score = False):
-        
+    def train(self, X, n_epochs, batch_size, k=1, gap=5, strategy="k_steps", is_data_normalized=False, compute_inception_score=False):
         # Normalize input data
         if not is_data_normalized:
             if self.model=="dcgan":
                 X = (X - 127.5) / 127.5
             else:
                 X = X/255
+        # Initialize variables and Tensorboard
         D_curr_loss = 0
         G_curr_loss = 0
-
         saver = tf.train.Saver()
-            
         inception_scores = []
-        # Initialize variables and Tensorboard
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             writer = tf.summary.FileWriter('output_tensorboard', sess.graph)
@@ -111,23 +108,22 @@ class DCGAN():
                 self.display_generated_images(sess, i)  # Store generated images after each epoch
 
                 if compute_inception_score:
-                    # saving inception score    
+                    # Saving inception score
                     current_inception_score = self.compute_inception_score(sess)
                     print('\nInception score : ', current_inception_score, '\n')
-                    inception_scores += [current_inception_score,i]
+                    inception_scores += [current_inception_score, i]
+                    saving_directory = os.path.join('save', self.model, self.data, 'inception_score')
+                    if not os.path.exists(saving_directory):
+                        os.makedirs(saving_directory)
+                    file_path = os.path.join(saving_directory, 'incep_score_epoch'+str(i))
+                    np.save(file_path, inception_scores)
 
-                    if not os.path.exists(os.path.join('save', 'inception_score')):
-                        os.makedirs(os.path.join('save', 'inception_score'))
+                # Saving model
+                model_saved_location = os.path.join('save', self.model, self.data, 'model')
+                if not os.path.exists(model_saved_location):
+                    os.makedirs(model_saved_location)
                     
-                    file = open(os.path.join('save', 'inception_score','inception_scores_epoch' + str(i)), 'wb')
-                    np.save(file,inception_scores)
-                    file.close()
-
-                #saving model
-                if not os.path.exists(os.path.join('save', 'model')):
-                    os.makedirs(os.path.join('save', 'model'))
-                    
-                path = saver.save(sess, os.path.join('save', 'model') + self.model + '_' + strategy , global_step = i)
+                path = saver.save(sess, os.path.join(model_saved_location, strategy+'_epoch'), global_step=i)
                 print("Model saved in path: %s\n" % path)
                 
             # Value in image to low to compute inception score
@@ -142,7 +138,7 @@ class DCGAN():
         if self.data == 'MNIST':
             list_images = [np.append(np.array(image*127 + 128, dtype='int32').reshape((28, 28, 1)), np.zeros((28,28,2)), axis=2) for image in images]
         if self.data == 'CIFAR10':
-            list_images = [np.array(np.tranpose(image*127 +128, (1,2,0)), dtype = 'int32') for image in images]
+            list_images = [np.array(np.tranpose(image*127 + 128, (1, 2, 0)), dtype='int32') for image in images]
         if self.data == 'CelebA':
             list_images = [np.array(image*127 + 128) for image in images]
         return inception_model.get_inception_score(list_images)  # mean, std
