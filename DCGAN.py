@@ -2,7 +2,7 @@ from Generator import *
 from Discriminator import *
 import tensorflow as tf
 import numpy as np
-#import inception_model
+import inception_model
 import os
 import matplotlib.pyplot as plt
 
@@ -75,7 +75,8 @@ class DCGAN():
 
         return D_curr_loss, G_curr_loss
 
-    def train(self, X, n_epochs, batch_size, k=1, gap=5, strategy="k_steps", is_data_normalized=False):
+    def train(self, X, n_epochs, batch_size, k=1, gap=5, strategy="k_steps", is_data_normalized=False, compute_inception_score = False):
+        
         # Normalize input data
         if not is_data_normalized:
             if self.model=="dcgan":
@@ -84,6 +85,10 @@ class DCGAN():
                 X = X/255
         D_curr_loss = 0
         G_curr_loss = 0
+
+        saver = tf.train.Saver()
+            
+        inception_scores = []
         # Initialize variables and Tensorboard
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
@@ -105,6 +110,26 @@ class DCGAN():
                         print(str(j) + '/' + str(max_j-1) + ' : cost D=' + str(D_curr_loss) + ' - cost G=' + str(G_curr_loss) + '\n')
                 self.display_generated_images(sess, i)  # Store generated images after each epoch
 
+                if compute_inception_score:
+                    # saving inception score    
+                    current_inception_score = self.compute_inception_score(sess)
+                    print('\nInception score : ', current_inception_score, '\n')
+                    inception_scores += [current_inception_score,i]
+
+                    if not os.path.exists(os.path.join('save', 'inception_score')):
+                        os.makedirs(os.path.join('save', 'inception_score'))
+                    
+                    file = open(os.path.join('save', 'inception_score','inception_scores_epoch' + str(i)), 'wb')
+                    np.save(file,inception_scores)
+                    file.close()
+
+                #saving model
+                if not os.path.exists(os.path.join('save', 'model')):
+                    os.makedirs(os.path.join('save', 'model'))
+                    
+                path = saver.save(sess, os.path.join('save', 'model') + self.model + '_' + strategy , global_step = i)
+                print("Model saved in path: %s\n" % path)
+                
             # Value in image to low to compute inception score
             # mean, std = self.compute_inception_score(sess)
             # print('Programm ended with Inception score', mean)
