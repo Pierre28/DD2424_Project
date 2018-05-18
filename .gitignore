@@ -117,3 +117,4 @@ output_tensorboard/
 *.bat
 Tools/out/
 .floyddata
+save/
