@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 
 class Discriminator:
@@ -46,6 +47,22 @@ class Discriminator:
                 #logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
                 logits_of_real = tf.layers.dense(logits_of_real, units=1)
                 proba_of_real = tf.nn.sigmoid(logits_of_real)
+                """# Convolution 1
+                logits_of_real = tf.layers.conv2d(image, kernel_size=5, filters=64, strides=2, padding='same')
+                logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
+                logits_of_real = tf.nn.leaky_relu(logits_of_real)
+                # 2
+                logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=128, strides=1, padding='same')
+                logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
+                logits_of_real = tf.nn.leaky_relu(logits_of_real)
+                # Feed-forward layer 1
+                logits_of_real = tf.contrib.layers.flatten(logits_of_real)
+                logits_of_real = tf.layers.dense(logits_of_real, units=128)#, activation=tf.nn.leaky_relu)
+                logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
+                logits_of_real = tf.nn.leaky_relu(logits_of_real)
+                # 2
+                logits_of_real = tf.layers.dense(logits_of_real, units=1)
+                proba_of_real = tf.nn.sigmoid(logits_of_real)"""
 
             elif self.model=="dcgan":
                 image = tf.reshape(image, shape=[-1, self.output_height, self.output_width, self.output_depth])
@@ -85,4 +102,4 @@ class Discriminator:
         elif self.model == "dcgan":
             self.solver = tf.train.AdamOptimizer(learning_rate=0.0002, beta1=0.5).minimize(self.loss,
                                                                                            var_list=self.variables,
-                                                                                           name='solver_generator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam
+                                                                       name='solver_generator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam

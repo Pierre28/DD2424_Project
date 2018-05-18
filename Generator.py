@@ -43,6 +43,18 @@ class Generator:
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=1, strides=2,
                                                           padding='same', activation=tf.nn.tanh)
 
+                """faked_images = tf.layers.dense(z, units=self.output_width*self.output_height*128/16)
+                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
+                faked_images = tf.nn.relu(faked_images)
+                # Convolution 1
+                faked_images = tf.reshape(faked_images, shape=[-1, int(self.output_height/4), int(self.output_width/4), 128])
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=64, strides=2, padding='same')
+                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
+                faked_images = tf.nn.relu(faked_images)
+                # Convolution 2
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=1, strides=2,
+                                                          padding='same', activation=tf.nn.tanh)"""
+
             elif self.model=="dcgan":
                 dim_first_layer, strides, kernel_size = self.get_complex_model_parameters()
                 # Projection of noise and proper reshaping
