@@ -18,9 +18,9 @@ def main(dataSet='MNIST', model="simple"):
         mndata = MNIST(path_to_dataset)
         mndata.gz = True  # Données en format .gz dans le dossier Datasets\MNIST
         images, _ = mndata.load_training()
-        images = np.array(images)
+        images = np.array(images[:20])
         dcgan = DCGAN([28, 28, 1], dim_noise=100, model=model, data=dataSet)
-        dcgan.train(images, 50, 100, k=1)
+        dcgan.train(images, 1, 5, k=1)
 
     elif dataSet == 'CIFAR10':
         path_to_dataset = os.path.join('Datasets', dataSet)
@@ -41,14 +41,14 @@ def main(dataSet='MNIST', model="simple"):
         images = images
 
         dcgan = DCGAN([32, 32, 3], dim_noise=300, model=model, data=dataSet)
-        dcgan.train(images, 300, 100, k=5)
+        dcgan.train(images, 1, 5, k=1)
        
     elif dataSet == 'CelebA':
-        images = np.load('CelebA_img.npz')['images']
+        images = np.load(os.path.join('Datasets','CelebA_img.npz'))['images']
         images = np.array(images)
         dcgan = DCGAN([218, 178, 3], dim_noise=400, model=model, data=dataSet)
-        dcgan.train(images, 300, 100, k=1)
+        dcgan.train(images, 1, 5, k=1)
 
 
 if __name__ == '__main__':
-    main(model="dcgan")
+    main(dataSet = 'CelebA', model="dcgan")

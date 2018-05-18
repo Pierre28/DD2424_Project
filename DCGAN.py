@@ -2,7 +2,7 @@ from Generator import *
 from Discriminator import *
 import tensorflow as tf
 import numpy as np
-import inception_model
+from Tools import inception_model
 import os
 import matplotlib.pyplot as plt
 
@@ -102,7 +102,7 @@ class DCGAN():
                     j_start = (j - 1) * batch_size
                     j_end = j * batch_size
                     # Get data
-                    X_batch_values = X[j_start:j_end]  # Shape (-1, n_dim)
+                    X_batch_values = X[j_start:j_end].reshape((batch_size, -1))  # Shape (-1, n_dim) # Error here
                     # Compute loss and optimize
                     D_curr_loss, G_curr_loss = self.optimize(sess, X_batch_values, j_end - j_start, j, D_curr_loss,
                                                              G_curr_loss, strategy=strategy, k=k, gap=gap)
@@ -131,14 +131,20 @@ class DCGAN():
                 print("Model saved in path: %s\n" % path)
                 
             # Value in image to low to compute inception score
-            # mean, std = self.compute_inception_score(sess)
-            # print('Programm ended with Inception score', mean)
+            mean, std = self.compute_inception_score(sess)
+            print('Programm ended with Inception score', mean)
 
     def compute_inception_score(self, sess):
         # Raise error if model not trained ?
-        noise_batch_values = self.get_noise(100)
+        # Attention, fonctionne ici pour dcgan et tanh, pas pour les autres et sigmoid
+        noise_batch_values = self.get_noise(10)
         images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False), feed_dict={self.noise_batch: noise_batch_values})
-        list_images = [np.append(np.array(image*127 + 128, dtype='int32').reshape((1, 28, 28)), np.zeros((2,28,28)), axis=0) for image in images]
+        if self.data == 'MNIST':
+            list_images = [np.append(np.array(image*127 + 128, dtype='int32').reshape((28, 28, 1)), np.zeros((28,28,2)), axis=2) for image in images]
+        if self.data == 'CIFAR10':
+            list_images = [np.array(np.tranpose(image*127 +128, (1,2,0)), dtype = 'int32') for image in images]
+        if self.data == 'CelebA':
+            list_images = [np.array(image*127 + 128) for image in images]
         return inception_model.get_inception_score(list_images)  # mean, std
 
     def display_generated_images(self, sess, n_epoch, n_images=16):
