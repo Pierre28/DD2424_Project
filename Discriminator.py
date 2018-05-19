@@ -17,6 +17,8 @@ class Discriminator:
         self.loss = 0
         self.solver = 0
 
+        self.len_current_batch = 0
+
     def compute_probability(self, image, nb_filters=64, reuse=tf.AUTO_REUSE):
         # Reuse = tf.AUTO_REUSE necessary to initialize both fake and real image
         with tf.variable_scope("discriminator", reuse=reuse):
@@ -80,13 +82,22 @@ class Discriminator:
 
         return proba_of_real, logits_of_real
 
-    def set_loss(self, real_images_logits, fake_images_logits):
+    def set_loss(self, real_images_logits, fake_images_logits, flip_labels=False):
+        if flip_labels:
+            labels_real = tf.where(tf.random_uniform(tf.shape(real_images_logits)) > 0.1,
+                                   tf.ones_like(real_images_logits), tf.zeros_like(real_images_logits))
+            labels_fake = tf.where(tf.random_uniform(tf.shape(fake_images_logits)) > 0.1,
+                                   tf.zeros_like(fake_images_logits), tf.ones_like(fake_images_logits))
+
+        else:
+            labels_real = tf.ones_like(real_images_logits)
+            labels_fake = tf.zeros_like(fake_images_logits)
         real_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=real_images_logits,
-                                                                           labels=tf.ones_like(real_images_logits),
+                                                                           labels=labels_real,
                                                                            name='loss_discri_real_img'),
                                    name='gradient_discri_real_img')
         fake_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_images_logits,
-                                                                           labels=tf.zeros_like(fake_images_logits),
+                                                                           labels=labels_fake,
                                                                            name='loss_discri_fake_img'),
                                    name='gradient_discri_fake_img')
         self.loss = real_loss + fake_loss
@@ -96,7 +107,7 @@ class Discriminator:
         if self.model == "simple":
             self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_discriminator')
         elif self.model=="intermediate":
-            self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_discriminator')
+            self.solver = tf.train.AdamOptimizer(learning_rate=0.0002, beta1=0.5).minimize(self.loss, var_list=self.variables, name='solver_discriminator')
             # self.solver = tf.train.RMSPropOptimizer(learning_rate=0.00015).minimize(self.loss, var_list=self.variables,
             #                                                                         name='solver_discriminator')
         elif self.model == "dcgan":

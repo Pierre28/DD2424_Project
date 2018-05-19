@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 class DCGAN():
     def __init__(self, input_shape, depth_layers_discriminator=[64, 128, 256, 512], depth_layers_generator=[1024, 512, 256, 128],
-                 dim_noise=100, model="simple", data="MNIST"):
+                 dim_noise=100, model="simple", data="MNIST", flip_discri_labels=False):
         # Global model
         self.model = model
         self.data = data
@@ -25,7 +25,7 @@ class DCGAN():
         self.discriminator = Discriminator(input_shape, depth_layers_discriminator, model=model)
         self.generator = Generator(input_shape, depth_layers=depth_layers_generator, model=model, data=data)
         # Construct the graph
-        self.build_graph()
+        self.build_graph(flip_discri_labels=flip_discri_labels)
 
     def get_noise(self, batch_size, min_distri=-1, max_distri=1, distribution="uniform"):
         if distribution=="uniform":
@@ -33,19 +33,24 @@ class DCGAN():
         elif distribution=="gaussian":
             return np.random.normal(size=(batch_size, self.dim_noise))
 
-    def set_losses(self, real_images_logits, fake_images_logits):
-        self.discriminator.set_loss(real_images_logits, fake_images_logits)
+    def set_losses(self, real_images_logits, fake_images_logits, flip_discri_labels=False):
+        self.discriminator.set_loss(real_images_logits, fake_images_logits, flip_labels=flip_discri_labels)
         self.generator.set_loss(fake_images_logits)
 
-    def build_graph(self):
+    def build_graph(self, flip_discri_labels=False):
         # Variables
         fake_images = self.generator.generate_images(self.noise_batch)
         real_images_probabilities, real_images_logits = self.discriminator.compute_probability(self.X_batch)
         fake_images_probabilities, fake_images_logits = self.discriminator.compute_probability(fake_images)
         # Loss
-        self.set_losses(real_images_logits, fake_images_logits)
+        self.set_losses(real_images_logits, fake_images_logits, flip_discri_labels=False)
         self.generator.set_solver()
         self.discriminator.set_solver()
+        # Summaries
+        tf.summary.scalar("Loss Generator", self.generator.loss)
+        tf.summary.scalar("Loss Discriminator", self.discriminator.loss)
+        tf.summary.scalar("Probability real images", real_images_probabilities)
+        tf.summary.scalar("Probability fake images", fake_images_probabilities)
 
     def optimize(self, sess, X_batch_values, size_noise, j, previous_D_loss, previous_G_loss, strategy="k_steps", k=1, gap=10, noise_type="uniform"):
         D_curr_loss = previous_D_loss
@@ -93,9 +98,13 @@ class DCGAN():
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             writer = tf.summary.FileWriter('output_tensorboard', sess.graph)
+            merged_summaries = tf.summary.merge_all()
             # Train
             max_j = int(np.ceil(int(X.shape[0])/ batch_size)) + 1
-            for i in range(n_epochs):                
+            show_loss_every = 100
+            if max_j<100:
+                show_loss_every = 10
+            for i in range(n_epochs):
                 print("Performing epoch " + str(i+1) + "/" + str(n_epochs) + '\n')
                 for j in range(1, max_j):
                     # Indices of batch
@@ -106,8 +115,9 @@ class DCGAN():
                     # Compute loss and optimize
                     D_curr_loss, G_curr_loss = self.optimize(sess, X_batch_values, j_end - j_start, j, D_curr_loss,
                                                              G_curr_loss, strategy=strategy, k=k, gap=gap, noise_type=noise_type)
-                    if j%100 == 0:
+                    if j%show_loss_every == 0:
                         print(str(j) + '/' + str(max_j-1) + ' : cost D=' + str(D_curr_loss) + ' - cost G=' + str(G_curr_loss) + '\n')
+
                 # Store generated images after each epoch
                 self.display_generated_images(sess, i+1, noise_type=noise_type)
                 # Saving inception score
@@ -175,10 +185,10 @@ class DCGAN():
                 os.makedirs(os.path.join('generated_img', 'CIFAR10'))
             noise_batch_values = self.get_noise(n_images, distribution=noise_type)
             faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
-            if self.model=="dcgan":
-                displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1) + 1)/2*127 + 128
+            if self.model == "simple":
+                displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1)*255).astype(int)
             else:
-                displayable_images = np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1)*127 + 128
+                displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1)*127.5 + 127.5).astype(int)
             fig = self.plot(displayable_images)
             plt.savefig(os.path.join('generated_img', 'CIFAR10', 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
