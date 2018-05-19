@@ -110,26 +110,25 @@ class DCGAN():
                         print(str(j) + '/' + str(max_j-1) + ' : cost D=' + str(D_curr_loss) + ' - cost G=' + str(G_curr_loss) + '\n')
                 # Store generated images after each epoch
                 self.display_generated_images(sess, i+1, noise_type=noise_type)
-                # Saving inception score
-                if is_inception_score_computed:
-                    self.save_inception_score(sess, inception_scores, noise_type, i+1)
+                
                 # Saving model
                 if is_model_saved:
                     self.save_model(sess, i+1, strategy)
                 
-            # Value in image to low to compute inception score
-            mean, std = self.compute_inception_score(sess, noise_type=noise_type)
-            print('Programm ended with Inception score', mean)
+                mean, std = self.compute_inception_score(sess, noise_type=noise_type)
+                inception_scores.append(mean)
+                print('Inception score', mean)
 
-    def save_inception_score(self, sess, inception_scores, noise_type, i):
+            if is_inception_score_computed:
+                self.save_inception_score(inception_scores)
+
+    @staticmethod
+    def save_inception_score(inception_scores):
         # Saving inception score
-        current_inception_score = self.compute_inception_score(sess, noise_type=noise_type)
-        print('\nInception score : ', current_inception_score, '\n')
-        inception_scores += [current_inception_score, i]
         saving_directory = os.path.join('save', self.model, self.data, 'inception_score')
         if not os.path.exists(saving_directory):
             os.makedirs(saving_directory)
-        file_path = os.path.join(saving_directory, 'incep_score_epoch' + str(i))
+        file_path = os.path.join(saving_directory, 'incep_score_per_epoch')
         np.save(file_path, inception_scores)
 
     def save_model(self, sess, i, strategy):
