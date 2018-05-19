@@ -40,8 +40,8 @@ class Generator:
                 faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
                 faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
                 # Convolution 2
-                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=1, strides=2,
-                                                          padding='same', activation=tf.nn.tanh)
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.output_depth, strides=2,
+                                                          padding='same', activation=tf.nn.sigmoid)#tf.nn.tanh)
 
                 """faked_images = tf.layers.dense(z, units=self.output_width*self.output_height*128/16)
                 faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
@@ -103,7 +103,7 @@ class Generator:
         if self.model == "simple":
             self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_generator')
         elif self.model=="intermediate":
-            self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_generator')
+            self.solver = tf.train.AdamOptimizer(learning_rate=0.0002, beta1=0.5).minimize(self.loss, var_list=self.variables, name='solver_generator')
             # self.solver = tf.train.RMSPropOptimizer(learning_rate=0.00015).minimize(self.loss,
             #                                                                         var_list=self.variables,
             #                                                                         name='solver_generator')
