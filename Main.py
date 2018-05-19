@@ -7,7 +7,9 @@ import pickle
 import matplotlib.pyplot as plt
 
 
-def main(dataSet='MNIST', model="simple"):
+def main(dataSet='MNIST', model="simple", dim_noise=100, flip_discri_labels=False,
+         final_generator_activation="tanh", n_epochs=30, batch_size=100, k=1, is_data_normalized=False,
+         is_inception_score_computed=False, is_model_saved=False, noise_type="uniform"):
     """
     @param: gz boolean, for MNIST dataSete equals True if data is .gz (compressed) format. False otherwise
     @param: dataSet string, CIFAR MNIST
@@ -19,12 +21,10 @@ def main(dataSet='MNIST', model="simple"):
         #mndata.gz = True  # Données en format .gz dans le dossier Datasets\MNIST
         images, _ = mndata.load_training()
         images = np.array(images)
-        dcgan = DCGAN([28, 28, 1], dim_noise=100, model=model, data=dataSet)
-        dcgan.train(images, 20, 64, k=2, is_inception_score_computed=False, is_model_saved=False, noise_type="gaussian")
+        image_dimensions = [28, 28, 1]
 
     elif dataSet == 'CIFAR10':
         path_to_dataset = os.path.join('Datasets', dataSet)
-
         paths_to_batch = [os.path.join(path_to_dataset, f)for f in listdir(path_to_dataset) if f[0:10] == 'data_batch']
 
         with open(paths_to_batch[0], 'rb') as file:
@@ -37,18 +37,20 @@ def main(dataSet='MNIST', model="simple"):
                 data = pickle.load(file, encoding='bytes')
                 labels = np.array(data[b'labels'])
                 images = np.append(images, np.array(data[b'data'][np.where(labels == 7)]),axis=0)
-                
-        images = images
+        image_dimensions = [32, 32, 3]
 
-        dcgan = DCGAN([32, 32, 3], dim_noise=100, model=model, data=dataSet, flip_discri_labels=True)
-        dcgan.train(images, 100, 64, k=1)
-       
     elif dataSet == 'CelebA':
         images = np.load(os.path.join('Datasets','CelebA_img.npz'))['images']
         images = np.array(images)
-        dcgan = DCGAN([218, 178, 3], dim_noise=400, model=model, data=dataSet)
-        dcgan.train(images, 1, 5, k=1)
+        image_dimensions = [218, 178, 3]
+
+    dcgan = DCGAN(image_dimensions, dim_noise=dim_noise, model=model, data=dataSet,
+                  flip_discri_labels=flip_discri_labels, final_generator_activation=final_generator_activation)
+    dcgan.train(images, n_epochs, batch_size, k=k, is_inception_score_computed=is_inception_score_computed,
+                is_model_saved=is_model_saved, noise_type=noise_type, is_data_normalized=is_data_normalized)
 
 
 if __name__ == '__main__':
-    main(dataSet='CIFAR10', model="intermediate")
+    main(dataSet='MNIST', model="simple", dim_noise=100, flip_discri_labels=False,
+         final_generator_activation="sigmoid", n_epochs=30, batch_size=100, k=1, is_data_normalized=False,
+         is_inception_score_computed=False, is_model_saved=False, noise_type="uniform")

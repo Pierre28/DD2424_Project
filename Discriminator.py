@@ -1,5 +1,4 @@
 import tensorflow as tf
-import numpy as np
 
 
 class Discriminator:
@@ -17,9 +16,7 @@ class Discriminator:
         self.loss = 0
         self.solver = 0
 
-        self.len_current_batch = 0
-
-    def compute_probability(self, image, nb_filters=64, reuse=tf.AUTO_REUSE):
+    def compute_probability(self, image, reuse=tf.AUTO_REUSE):
         # Reuse = tf.AUTO_REUSE necessary to initialize both fake and real image
         with tf.variable_scope("discriminator", reuse=reuse):
             if self.model=="simple":
@@ -49,22 +46,6 @@ class Discriminator:
                 #logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
                 logits_of_real = tf.layers.dense(logits_of_real, units=1)
                 proba_of_real = tf.nn.sigmoid(logits_of_real)
-                """# Convolution 1
-                logits_of_real = tf.layers.conv2d(image, kernel_size=5, filters=64, strides=2, padding='same')
-                logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
-                logits_of_real = tf.nn.leaky_relu(logits_of_real)
-                # 2
-                logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=128, strides=1, padding='same')
-                logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
-                logits_of_real = tf.nn.leaky_relu(logits_of_real)
-                # Feed-forward layer 1
-                logits_of_real = tf.contrib.layers.flatten(logits_of_real)
-                logits_of_real = tf.layers.dense(logits_of_real, units=128)#, activation=tf.nn.leaky_relu)
-                logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
-                logits_of_real = tf.nn.leaky_relu(logits_of_real)
-                # 2
-                logits_of_real = tf.layers.dense(logits_of_real, units=1)
-                proba_of_real = tf.nn.sigmoid(logits_of_real)"""
 
             elif self.model=="dcgan":
                 image = tf.reshape(image, shape=[-1, self.output_height, self.output_width, self.output_depth])

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 class DCGAN():
     def __init__(self, input_shape, depth_layers_discriminator=[64, 128, 256, 512], depth_layers_generator=[1024, 512, 256, 128],
-                 dim_noise=100, model="simple", data="MNIST", flip_discri_labels=False):
+                 dim_noise=100, model="simple", data="MNIST", flip_discri_labels=False, final_generator_activation="tanh"):
         # Global model
         self.model = model
         self.data = data
@@ -22,8 +22,9 @@ class DCGAN():
         self.X_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.output_depth*self.output_height*self.output_width], name='X')
         self.noise_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.dim_noise], name='noise')
         # Build both components
+        self.final_generator_activation = final_generator_activation
         self.discriminator = Discriminator(input_shape, depth_layers_discriminator, model=model)
-        self.generator = Generator(input_shape, depth_layers=depth_layers_generator, model=model, data=data)
+        self.generator = Generator(input_shape, depth_layers=depth_layers_generator, model=model, data=data, final_activation=final_generator_activation)
         # Construct the graph
         self.build_graph(flip_discri_labels=flip_discri_labels)
 
@@ -87,9 +88,9 @@ class DCGAN():
               is_inception_score_computed=False, is_model_saved=False, noise_type="uniform"):
         # Normalize input data
         if not is_data_normalized:
-            if self.model=="simple":
+            if self.final_generator_activation=="sigmoid":
                 X = X/255
-            else:
+            elif self.final_generator_activation=="tanh":
                 X = (X - 127.5) / 127.5
         # Initialize variables and Tensorboard
         D_curr_loss = 0
@@ -124,19 +125,16 @@ class DCGAN():
                 # Saving model
                 if is_model_saved:
                     self.save_model(sess, i+1, strategy)
-                
-                mean, std = self.compute_inception_score(sess, noise_type=noise_type)
-                inception_scores.append(mean)
-                print('Inception score', mean)
+                # Compute inception score
+                if is_inception_score_computed:
+                    mean, std = self.compute_inception_score(sess, noise_type=noise_type)
+                    inception_scores.append(mean)
+                    print('Inception score', mean)
 
-            self.display_generated_images(sess, 'final_', n_images = 100, noise_type = noise_type)
-            if is_inception_score_computed:
-                self.save_inception_score(inception_scores)
+            self.display_generated_images(sess, 'final_', n_images=100, noise_type=noise_type)
+            self.save_inception_score(inception_scores)
 
-
-
-    @staticmethod
-    def save_inception_score(inception_scores):
+    def save_inception_score(self, inception_scores):
         # Saving inception score
         saving_directory = os.path.join('save', self.model, self.data, 'inception_score')
         if not os.path.exists(saving_directory):
@@ -174,10 +172,10 @@ class DCGAN():
                 os.makedirs(os.path.join('generated_img', 'MNIST'))
             noise_batch_values = self.get_noise(n_images, distribution=noise_type)
             faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
-            if self.model == "simple":
-                displayable_images = [np.array(image * 127 + 128, dtype='int32').reshape((28, 28)) for image in faked_images]
-            else:
-                displayable_images = [np.array(image*127.5 + 127.5, dtype='int32').reshape((28, 28)) for image in faked_images]
+            #if self.final_generator_activation=="sigmoid":
+            #    displayable_images = [np.array(image * 255, dtype='int32').reshape((28, 28)) for image in faked_images]
+            #elif self.final_generator_activation == "tanh":
+            displayable_images = [np.array(image*127.5 + 127.5, dtype='int32').reshape((28, 28)) for image in faked_images]
             fig = self.plot(displayable_images)
             plt.savefig(os.path.join('generated_img', 'MNIST', 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
@@ -187,9 +185,9 @@ class DCGAN():
                 os.makedirs(os.path.join('generated_img', 'CIFAR10'))
             noise_batch_values = self.get_noise(n_images, distribution=noise_type)
             faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
-            if self.model == "simple":
+            if self.final_generator_activation=="sigmoid":
                 displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1)*255).astype(int)
-            else:
+            elif self.final_generator_activation == "tanh":
                 displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1)*127.5 + 127.5).astype(int)
             fig = self.plot(displayable_images)
             plt.savefig(os.path.join('generated_img', 'CIFAR10', 'Epoch' + str(n_epoch) + '.png'))
