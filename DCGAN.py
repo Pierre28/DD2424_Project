@@ -129,8 +129,11 @@ class DCGAN():
                 inception_scores.append(mean)
                 print('Inception score', mean)
 
+            self.display_generated_images(sess, 'final_', n_images = 100, noise_type = noise_type)
             if is_inception_score_computed:
                 self.save_inception_score(inception_scores)
+
+
 
     @staticmethod
     def save_inception_score(inception_scores):
@@ -198,6 +201,7 @@ class DCGAN():
         assert (np.ceil(size) == size), "change image number"
         size = int(size)
         fig, axes = plt.subplots(size, size, figsize=(7, 7))
+        plt.subplots_adjust(wspace=0, hspace=0)
         i = 0
         for j in range(size):
             for k in range(size):
