@@ -155,12 +155,12 @@ class DCGAN():
     def compute_inception_score(self, sess, noise_type="uniform"):
         # Raise error if model not trained ?
         # Attention, fonctionne ici pour dcgan et tanh, pas pour les autres et sigmoid
-        noise_batch_values = self.get_noise(10, distribution=noise_type)
+        noise_batch_values = self.get_noise(100, distribution=noise_type)
         images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False), feed_dict={self.noise_batch: noise_batch_values})
         if self.data == 'MNIST':
             list_images = [np.append(np.array(image*127 + 128, dtype='int32').reshape((28, 28, 1)), np.zeros((28,28,2)), axis=2) for image in images]
         if self.data == 'CIFAR10':
-            list_images = [np.array(np.tranpose(image*127 + 128, (1, 2, 0)), dtype='int32') for image in images]
+            list_images = [np.array(image*127 + 128, dtype='int32') for image in images]
         if self.data == 'CelebA':
             list_images = [np.array(image*127 + 128) for image in images]
         return inception_model.get_inception_score(list_images)  # mean, std

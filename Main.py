@@ -16,7 +16,7 @@ def main(dataSet='MNIST', model="simple"):
         path_to_dataset = os.path.join('Datasets', dataSet)
 
         mndata = MNIST(path_to_dataset)
-        mndata.gz = True  # Données en format .gz dans le dossier Datasets\MNIST
+        #mndata.gz = True  # Données en format .gz dans le dossier Datasets\MNIST
         images, _ = mndata.load_training()
         images = np.array(images)
         dcgan = DCGAN([28, 28, 1], dim_noise=100, model=model, data=dataSet)
