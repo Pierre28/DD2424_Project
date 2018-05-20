@@ -147,14 +147,14 @@ class DCGAN():
                 # Store generated images after each epoch
                 self.display_generated_images(sess, i+1, noise_type=noise_type)
                 
-                # Saving model
-                if is_model_saved:
-                    self.save_model(sess, i+1, strategy)
                 # Compute inception score
                 if is_inception_score_computed:
                     mean, std = self.compute_inception_score(sess, noise_type=noise_type)
                     inception_scores.append(mean)
                     print('Inception score', mean)
+
+            if is_model_saved:
+                self.save_model(sess, strategy)
 
             self.display_generated_images(sess, 'final_', n_images=100, noise_type=noise_type)
             mean, std = self.compute_inception_score(sess, noise_type=noise_type)
@@ -170,14 +170,14 @@ class DCGAN():
         file_path = os.path.join(saving_directory, 'incep_score_per_epoch')
         np.save(file_path, inception_scores)
 
-    def save_model(self, sess, i, strategy):
+    def save_model(self, sess, strategy):
         saver = tf.train.Saver()
         # Saving model
         model_saved_location = os.path.join('save', self.model, self.data, 'model')
         if not os.path.exists(model_saved_location):
             os.makedirs(model_saved_location)
 
-        path = saver.save(sess, os.path.join(model_saved_location, strategy + '_epoch'), global_step=i)
+        path = saver.save(sess, os.path.join(model_saved_location, strategy + '_'))
         print("Model saved in path: %s\n" % path)
 
     def compute_inception_score(self, sess, noise_type="uniform"):
