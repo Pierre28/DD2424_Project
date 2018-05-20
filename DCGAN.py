@@ -18,6 +18,9 @@ class DCGAN():
         self.output_width = input_shape[1]
         self.output_depth = input_shape[2]
         self.dim_noise = dim_noise
+        # Useful variables
+        self.real_images_probabilities = 0
+        self.fake_images_probabilities = 0
         # Build input variables
         self.X_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.output_depth*self.output_height*self.output_width], name='X')
         self.noise_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.dim_noise], name='noise')
@@ -41,8 +44,8 @@ class DCGAN():
     def build_graph(self, flip_discri_labels=False):
         # Variables
         fake_images = self.generator.generate_images(self.noise_batch)
-        real_images_probabilities, real_images_logits = self.discriminator.compute_probability(self.X_batch)
-        fake_images_probabilities, fake_images_logits = self.discriminator.compute_probability(fake_images)
+        self.real_images_probabilities, real_images_logits = self.discriminator.compute_probability(self.X_batch)
+        self.fake_images_probabilities, fake_images_logits = self.discriminator.compute_probability(fake_images)
         # Loss
         self.set_losses(real_images_logits, fake_images_logits, flip_discri_labels=False)
         self.generator.set_solver()
@@ -50,12 +53,14 @@ class DCGAN():
         # Summaries
         tf.summary.scalar("Loss Generator", self.generator.loss)
         tf.summary.scalar("Loss Discriminator", self.discriminator.loss)
-        tf.summary.scalar("Probability real images", real_images_probabilities)
-        tf.summary.scalar("Probability fake images", fake_images_probabilities)
+        tf.summary.scalar("Probability real images", self.real_images_probabilities)
+        tf.summary.scalar("Probability fake images", self.fake_images_probabilities)
 
-    def optimize(self, sess, X_batch_values, size_noise, j, previous_D_loss, previous_G_loss, strategy="k_steps", k=1, gap=10, noise_type="uniform"):
+    def optimize(self, sess, X_batch_values, size_noise, j, previous_D_loss, previous_G_loss, was_D_trained, was_G_trained, strategy="k_steps", k=1, gap=10, noise_type="uniform"):
         D_curr_loss = previous_D_loss
         G_curr_loss = previous_G_loss
+        train_D = True  # Used only for strategy="probabilities"
+        train_G = True
 
         # Compute loss and optimize
         if strategy=="k_steps":
@@ -82,7 +87,25 @@ class DCGAN():
                 noise_batch_values = self.get_noise(size_noise, distribution=noise_type)
                 _, G_curr_loss = sess.run([self.generator.solver, self.generator.loss], feed_dict={self.noise_batch: noise_batch_values})
 
-        return D_curr_loss, G_curr_loss
+        elif strategy=="probabilities":
+            # Here loss is probability
+            if 0.7<D_curr_loss and was_D_trained:
+                train_D = False
+            elif G_curr_loss>0.7 and was_G_trained:
+                train_G = False
+            if train_G:
+                noise_batch_values = self.get_noise(size_noise, distribution=noise_type)
+                _, G_curr_loss = sess.run([self.generator.solver, self.fake_images_probabilities],
+                                          feed_dict={self.noise_batch: noise_batch_values})
+                G_curr_loss = np.mean(G_curr_loss)
+            if train_D:
+                noise_batch_values = self.get_noise(size_noise, distribution=noise_type)
+                _, D_curr_loss = sess.run([self.discriminator.solver, self.real_images_probabilities],
+                                          feed_dict={self.X_batch: X_batch_values,
+                                                     self.noise_batch: noise_batch_values})
+                D_curr_loss = np.mean(D_curr_loss)
+
+        return D_curr_loss, G_curr_loss, train_D, train_G
 
     def train(self, X, n_epochs, batch_size, k=1, gap=5, strategy="k_steps", is_data_normalized=False,
               is_inception_score_computed=False, is_model_saved=False, noise_type="uniform"):
@@ -95,6 +118,8 @@ class DCGAN():
         # Initialize variables and Tensorboard
         D_curr_loss = 0
         G_curr_loss = 0
+        D_trained = False
+        G_trained = False
         inception_scores = []
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
@@ -114,8 +139,8 @@ class DCGAN():
                     # Get data
                     X_batch_values = X[j_start:j_end, :]  # Shape (-1, n_dim)
                     # Compute loss and optimize
-                    D_curr_loss, G_curr_loss = self.optimize(sess, X_batch_values, j_end - j_start, j, D_curr_loss,
-                                                             G_curr_loss, strategy=strategy, k=k, gap=gap, noise_type=noise_type)
+                    D_curr_loss, G_curr_loss, D_trained, G_trained = self.optimize(sess, X_batch_values, j_end - j_start, j, D_curr_loss,
+                                                             G_curr_loss, D_trained, G_trained, strategy=strategy, k=k, gap=gap, noise_type=noise_type)
                     if j%show_loss_every == 0:
                         print(str(j) + '/' + str(max_j-1) + ' : cost D=' + str(D_curr_loss) + ' - cost G=' + str(G_curr_loss) + '\n')
 
@@ -132,6 +157,9 @@ class DCGAN():
                     print('Inception score', mean)
 
             self.display_generated_images(sess, 'final_', n_images=100, noise_type=noise_type)
+            mean, std = self.compute_inception_score(sess, noise_type=noise_type)
+            inception_scores.append(mean)
+            print('Inception score', mean)
             self.save_inception_score(inception_scores)
 
     def save_inception_score(self, inception_scores):
@@ -165,7 +193,7 @@ class DCGAN():
             list_images = [np.array(image*127 + 128) for image in images]
         return inception_model.get_inception_score(list_images)  # mean, std
 
-    def display_generated_images(self, sess, n_epoch, n_images=16, noise_type="uniform"):
+    def display_generated_images(self, sess, n_epoch, n_images=25, noise_type="uniform"):
         print("Display generated image")
         if self.data == 'MNIST':
             if not os.path.exists(os.path.join('generated_img', 'MNIST')):
@@ -186,9 +214,9 @@ class DCGAN():
             noise_batch_values = self.get_noise(n_images, distribution=noise_type)
             faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
             if self.final_generator_activation=="sigmoid":
-                displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1)*255).astype(int)
+                displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1))
             elif self.final_generator_activation == "tanh":
-                displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1)*127.5 + 127.5).astype(int)
+                displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1) * 0.5 + 0.5)
             fig = self.plot(displayable_images)
             plt.savefig(os.path.join('generated_img', 'CIFAR10', 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
