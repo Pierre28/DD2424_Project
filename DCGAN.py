@@ -163,13 +163,15 @@ class DCGAN():
             print('Inception score', mean)
             self.save_inception_score(inception_scores)
 
-    def save_inception_score(self, inception_scores):
+    def save_inception_score(self, mean,std,step):
         # Saving inception score
         saving_directory = os.path.join('save', self.model, self.data, 'inception_score')
         if not os.path.exists(saving_directory):
             os.makedirs(saving_directory)
         file_path = os.path.join(saving_directory, 'incep_score_per_epoch')
-        np.save(file_path, inception_scores)
+        file = open(file_path + "_DCGAN1.txt",'a')
+        file.write(str(mean)+'-'+str(std)+'-'+str(step)+'\n')
+        file.close()
 
     def save_model(self, sess, strategy):
         saver = tf.train.Saver()
