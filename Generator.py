@@ -35,47 +35,70 @@ class Generator:
                 activation = tf.nn.relu
                 dropout_probability = 0.2
                 # Projection of noise and proper reshaping
-                faked_images = tf.layers.dense(z, units=self.output_width*self.output_height*128/16, activation=activation)
-                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
+                faked_images = tf.layers.dense(z, units=self.output_width*self.output_height*128/16)
+                #faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
+                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
                 faked_images = tf.reshape(faked_images, shape=[-1, int(self.output_height/4), int(self.output_width/4), 128])
                 # Convolution 1
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=64, strides=2,
-                                                          padding='same', activation=activation)
-                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
+                                                          padding='same')
+                #faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
+                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
                 # Convolution 2
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.output_depth, strides=2,
-                                                          padding='same', activation=tf.nn.tanh)
+                                                          padding='same', activation=final_activation)
 
-            elif self.model=="dcgan":
-                dropout_probability = 0
+            elif self.model=="dcgan_custom":
+                dropout_probability = 0.2
                 dim_first_layer, strides, kernel_size = self.get_complex_model_parameters()
                 # Projection of noise and proper reshaping
-                faked_images = tf.layers.dense(z, units=self.depth_layers[0]*dim_first_layer[0]*dim_first_layer[1], activation=tf.nn.relu)
-                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
+                faked_images = tf.layers.dense(z, units=self.depth_layers[0]*dim_first_layer[0]*dim_first_layer[1])
+                #faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
+                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
                 faked_images = tf.reshape(faked_images, shape=[-1, dim_first_layer[0], dim_first_layer[1], self.depth_layers[0]])
 
                 # Fractional-strided convolutions/Deconvolutions
                 # 1
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[0], filters=self.depth_layers[1],
-                                                          strides=strides[0], padding='same', activation=tf.nn.relu)
-                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
+                                                          strides=strides[0], padding='same')
+                #faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
+                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
                 # 2
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[1], filters=self.depth_layers[2],
-                                                          strides=strides[1], padding='same', activation=tf.nn.relu)
-                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
+                                                          strides=strides[1], padding='same')
+                #faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
+                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
                 # 3
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[2], filters=self.depth_layers[3],
-                                                          strides=strides[2], padding='same', activation=tf.nn.relu)
-                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.contrib.layers.batch_norm(faked_images, is_training=is_training)
+                                                          strides=strides[2], padding='same')
+                #faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
+                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
                 # 4
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[3], filters=self.output_depth,
                                                           strides=strides[3], padding='same', activation=final_activation)
+
+            elif self.model == "dcgan_vanilla":
+                dim_first_layer, strides, kernel_size = self.get_complex_model_parameters()
+                # Projection of noise and proper reshaping
+                faked_images = tf.layers.dense(z, units=self.depth_layers[0] * dim_first_layer[0] * dim_first_layer[1])
+                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
+                faked_images = tf.reshape(faked_images, shape=[-1, dim_first_layer[0], dim_first_layer[1], self.depth_layers[0]])
+
+                # Fractional-strided convolutions/Deconvolutions
+                # 1
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[0], filters=self.depth_layers[1], strides=strides[0], padding='same')
+                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
+                # 2
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[1], filters=self.depth_layers[2], strides=strides[1], padding='same')
+                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
+                # 3
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[2], filters=self.depth_layers[3], strides=strides[2], padding='same')
+                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
+                # 4
+                faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[3],
+                                                          filters=self.output_depth,
+                                                          strides=strides[3], padding='same',
+                                                          activation=final_activation)
         return faked_images
 
     def get_complex_model_parameters(self):
@@ -106,13 +129,11 @@ class Generator:
         self.variables = [var for var in tf.trainable_variables() if var.name.startswith("generator")]
         if self.model == "simple":
             self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_generator')
+
         elif self.model=="intermediate":
             self.solver = tf.train.AdamOptimizer(learning_rate=0.002, beta1=0.5).minimize(self.loss, var_list=self.variables, name='solver_generator')
 
-            # self.solver = tf.train.RMSPropOptimizer(learning_rate=0.00015).minimize(self.loss,
-            #                                                                         var_list=self.variables,
-            #                                                                         name='solver_generator')
-        elif self.model == "dcgan":
+        elif self.model[:5] == "dcgan":
             self.solver = tf.train.AdamOptimizer(learning_rate=0.0002, beta1=0.5).minimize(self.loss,
                                                                                            var_list=self.variables,
                                                                                            name='solver_generator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam

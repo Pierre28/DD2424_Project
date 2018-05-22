@@ -48,7 +48,7 @@ class DCGAN():
         self.fake_images_probabilities, fake_images_logits = self.discriminator.compute_probability(fake_images, reuse=False)
         self.real_images_probabilities, real_images_logits = self.discriminator.compute_probability(self.X_batch, reuse=True)
         # Loss
-        self.set_losses(real_images_logits, fake_images_logits, flip_discri_labels=False)
+        self.set_losses(real_images_logits, fake_images_logits, flip_discri_labels=flip_discri_labels)
         self.generator.set_solver()
         self.discriminator.set_solver()
         # Summaries
@@ -138,7 +138,7 @@ class DCGAN():
                     j_start = (j - 1) * batch_size
                     j_end = j * batch_size
                     # Get data
-                    X_batch_values = X[j_start:j_end, :]  # Shape (-1, n_dim)
+                    X_batch_values = X[j_start:j_end]  # Shape (-1, n_dim)
                     # Compute loss and optimize
                     D_curr_loss, G_curr_loss, D_trained, G_trained = self.optimize(sess, X_batch_values, j_end - j_start, j, D_curr_loss,
                                                              G_curr_loss, D_trained, G_trained, strategy=strategy, k=k, gap=gap, noise_type=noise_type)
@@ -200,7 +200,7 @@ class DCGAN():
             if not os.path.exists(os.path.join('generated_img', 'MNIST')):
                 os.makedirs(os.path.join('generated_img', 'MNIST'))
             noise_batch_values = self.get_noise(n_images, distribution=noise_type)
-            faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
+            faked_images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False, reuse=True), feed_dict={self.noise_batch: noise_batch_values})
             #if self.final_generator_activation=="sigmoid":
             #    displayable_images = [np.array(image * 255, dtype='int32').reshape((28, 28)) for image in faked_images]
             #elif self.final_generator_activation == "tanh":
@@ -213,7 +213,7 @@ class DCGAN():
             if not os.path.exists(os.path.join('generated_img', 'CIFAR10')):
                 os.makedirs(os.path.join('generated_img', 'CIFAR10'))
             noise_batch_values = self.get_noise(n_images, distribution=noise_type)
-            faked_images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False), feed_dict={self.noise_batch: noise_batch_values})
+            faked_images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False, reuse=True), feed_dict={self.noise_batch: noise_batch_values})
             # if self.final_generator_activation=="sigmoid":
             #     displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1))
             # elif self.final_generator_activation == "tanh":
