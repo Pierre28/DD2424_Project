@@ -4,6 +4,8 @@ import tensorflow as tf
 import numpy as np
 #from Tools import inception_model
 import os
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
