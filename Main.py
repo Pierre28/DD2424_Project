@@ -37,6 +37,11 @@ def main(dataSet='MNIST', model="simple", dim_noise=100, flip_discri_labels=Fals
                 data = pickle.load(file, encoding='bytes')
                 labels = np.array(data[b'labels'])
                 images = np.append(images, np.array(data[b'data'][np.where(labels == 7)]),axis=0)
+        images = np.reshape(images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1)
+        #images = np.dot(images[..., :3], [0.299, 0.587, 0.114]).reshape(-1, 32, 32, 1)
+        print(images.shape)
+        plt.imshow(images[0])
+        plt.show()
         image_dimensions = [32, 32, 3]
 
     elif dataSet == 'CelebA':
@@ -51,6 +56,6 @@ def main(dataSet='MNIST', model="simple", dim_noise=100, flip_discri_labels=Fals
 
 
 if __name__ == '__main__':
-    main(dataSet='CIFAR10', model="dcgan", dim_noise=100, flip_discri_labels=False,
-         final_generator_activation="tanh", n_epochs=100, batch_size=32, k=1, is_data_normalized=False,
-         is_inception_score_computed=False, is_model_saved=False, noise_type="gaussian", strategy="probabilities")
+    main(dataSet='CIFAR10', model="intermediate", dim_noise=100, flip_discri_labels=False,
+         final_generator_activation="tanh", n_epochs=150, batch_size=32, k=1, is_data_normalized=False,
+         is_inception_score_computed=False, is_model_saved=False, noise_type="gaussian", strategy="k_steps")

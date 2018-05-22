@@ -27,7 +27,7 @@ class Discriminator:
 
             elif self.model=="intermediate":
                 dropout_probability = 0.5
-                image = tf.reshape(image, shape=[-1, self.output_height, self.output_width, self.output_depth])
+                #image = tf.reshape(image, shape=[-1, self.output_height, self.output_width, self.output_depth])
                 # Convolution 1
                 logits_of_real = tf.layers.conv2d(image, kernel_size=5, filters=64, strides=2, padding='same',
                                                   activation=tf.nn.leaky_relu)
@@ -91,6 +91,7 @@ class Discriminator:
 
     def set_solver(self):
         self.variables = [var for var in tf.trainable_variables() if var.name.startswith("discriminator")]
+        print(self.variables)
         if self.model == "simple":
             self.solver = tf.train.AdamOptimizer().minimize(self.loss, var_list=self.variables, name='solver_discriminator')
         elif self.model=="intermediate":

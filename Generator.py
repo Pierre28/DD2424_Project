@@ -49,7 +49,7 @@ class Generator:
                                                           padding='same', activation=tf.nn.tanh)
 
             elif self.model=="dcgan":
-                dropout_probability = 0.2
+                dropout_probability = 0
                 dim_first_layer, strides, kernel_size = self.get_complex_model_parameters()
                 # Projection of noise and proper reshaping
                 faked_images = tf.layers.dense(z, units=self.depth_layers[0]*dim_first_layer[0]*dim_first_layer[1], activation=tf.nn.relu)
