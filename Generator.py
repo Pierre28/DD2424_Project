@@ -120,6 +120,12 @@ class Generator:
             kernel_size = [(5,5), (5,5), (6,5), (5,5)]
             return dim_first_layer, strides, kernel_size
 
+        elif self.data == 'pokemon':
+            dim_first_layer = (4,4)
+            strides = [2,2,2,2]
+            kernel_size = [5,5,5,5]
+            return dim_first_layer, strides, kernel_size
+
     def set_loss(self, fake_images_logits):
         self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_images_logits,
                                                                            labels=tf.ones_like(fake_images_logits),

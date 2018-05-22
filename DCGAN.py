@@ -11,7 +11,9 @@ import matplotlib.pyplot as plt
 
 class DCGAN():
     def __init__(self, input_shape, depth_layers_discriminator=[64, 128, 256, 512], depth_layers_generator=[1024, 512, 256, 128],
-                 dim_noise=100, model="simple", data="MNIST", flip_discri_labels=False, final_generator_activation="tanh"):
+                 dim_noise=100, model="simple", data="MNIST", flip_discri_labels=False, final_generator_activation="tanh", test_name='_1'):
+        #Saving param
+        self.test_name = test_name
         # Global model
         self.model = model
         self.data = data
@@ -163,7 +165,7 @@ class DCGAN():
 
     def save_inception_score(self, mean,std,step):
         # Saving inception score
-        saving_directory = os.path.join('save', self.model, self.data, 'inception_score')
+        saving_directory = os.path.join('save', self.model, self.data, self.test_name,'inception_score')
         if not os.path.exists(saving_directory):
             os.makedirs(saving_directory)
         file_path = os.path.join(saving_directory, 'incep_score_per_epoch')
@@ -174,7 +176,7 @@ class DCGAN():
     def save_model(self, sess, strategy):
         saver = tf.train.Saver()
         # Saving model
-        model_saved_location = os.path.join('save', self.model, self.data, 'model')
+        model_saved_location = os.path.join('save', self.model, self.data, self.test_name, 'model')
         if not os.path.exists(model_saved_location):
             os.makedirs(model_saved_location)
 
@@ -196,8 +198,8 @@ class DCGAN():
     def display_generated_images(self, sess, n_epoch, n_images=64, noise_type="uniform"):
         print("Display generated image")
         if self.data == 'MNIST':
-            if not os.path.exists(os.path.join('generated_img', 'MNIST')):
-                os.makedirs(os.path.join('generated_img', 'MNIST'))
+            if not os.path.exists(os.path.join('generated_img', 'MNIST', test_name)):
+                os.makedirs(os.path.join('generated_img', 'MNIST', test_name))
             noise_batch_values = self.get_noise(n_images, distribution=noise_type)
             faked_images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False, reuse=True), feed_dict={self.noise_batch: noise_batch_values})
             #if self.final_generator_activation=="sigmoid":
@@ -205,12 +207,12 @@ class DCGAN():
             #elif self.final_generator_activation == "tanh":
             displayable_images = [np.array(image*127.5 + 127.5, dtype='int32').reshape((28, 28)) for image in faked_images]
             fig = self.plot(displayable_images)
-            plt.savefig(os.path.join('generated_img', 'MNIST', 'Epoch' + str(n_epoch) + '.png'))
+            plt.savefig(os.path.join('generated_img', 'MNIST', self.test_name, 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
 
         elif self.data == 'CIFAR10':
-            if not os.path.exists(os.path.join('generated_img', 'CIFAR10')):
-                os.makedirs(os.path.join('generated_img', 'CIFAR10'))
+            if not os.path.exists(os.path.join('generated_img', 'CIFAR10', self.test_name)):
+                os.makedirs(os.path.join('generated_img', 'CIFAR10', self.test_name))
             noise_batch_values = self.get_noise(n_images, distribution=noise_type)
             faked_images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False, reuse=True), feed_dict={self.noise_batch: noise_batch_values})
             # if self.final_generator_activation=="sigmoid":
@@ -218,18 +220,18 @@ class DCGAN():
             # elif self.final_generator_activation == "tanh":
             #     displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1) * 0.5 + 0.5)
             fig = self.plot(faked_images*0.5+0.5)
-            plt.savefig(os.path.join('generated_img', 'CIFAR10', 'Epoch' + str(n_epoch) + '.png'))
+            plt.savefig(os.path.join('generated_img', 'CIFAR10', self.test_name, 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
 
         elif self.data == 'pokemon':
-            if not os.path.exists(os.path.join('generated_img', 'pokemon')):
-                os.makedirs(os.path.join('generated_img', 'pokemon'))
+            if not os.path.exists(os.path.join('generated_img', 'pokemon', self.test_name)):
+                os.makedirs(os.path.join('generated_img', 'pokemon', self.test_name))
             noise_batch_values = self.get_noise(n_images, distribution=noise_type)
             faked_images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False, reuse=True), feed_dict={self.noise_batch: noise_batch_values})
             if self.final_generator_activation == "tanh":
                 faked_images = faked_images* 0.5 + 0.5
             fig = self.plot(faked_images)
-            plt.savefig(os.path.join('generated_img', 'pokemon', 'Epoch' + str(n_epoch) + '.png'))
+            plt.savefig(os.path.join('generated_img', 'pokemon', self.test_name, 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
 
             
