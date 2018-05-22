@@ -147,6 +147,8 @@ class DCGAN():
                     # Compute loss and optimize
                     D_curr_loss, G_curr_loss, D_trained, G_trained = self.optimize(sess, X_batch_values, j_end - j_start, j, D_curr_loss,
                                                              G_curr_loss, D_trained, G_trained, strategy=strategy, k=k, gap=gap, noise_type=noise_type)
+                    #print([np.max(sess.run(tensor)) for tensor in self.generator.means])
+                    #print([tf.Print(tensor, [tensor, tf.shape(tensor)]) for tensor in self.generator.means])
                     if j%show_loss_every == 0:
                         print(str(j) + '/' + str(max_j-1) + ' : cost D=' + str(D_curr_loss) + ' - cost G=' + str(G_curr_loss) + '\n')
 

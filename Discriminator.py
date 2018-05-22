@@ -15,6 +15,8 @@ class Discriminator:
         self.variables = []
         self.loss = 0
         self.solver = 0
+        self.means = []
+        self.variances = []
 
     def compute_probability(self, image, reuse=tf.AUTO_REUSE):
         # Reuse = tf.AUTO_REUSE necessary to initialize both fake and real image
@@ -31,36 +33,39 @@ class Discriminator:
                 # Convolution 1
                 logits_of_real = tf.layers.conv2d(image, kernel_size=5, filters=64, strides=2, padding='same')
                 #logits_of_real = tf.layers.dropout(logits_of_real, dropout_probability, training=True)
-                logits_of_real = tf.nn.leaky_relu(tf.layers.batch_normalization(logits_of_real, training=True))
+                logits_of_real = tf.nn.leaky_relu(self.batch_norm_wrapper(logits_of_real))
+                #logits_of_real = tf.nn.leaky_relu(logits_of_real)
                 # 2
                 logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=128, strides=1, padding='same')
                 #logits_of_real = tf.layers.dropout(logits_of_real, dropout_probability, training=True)
-                logits_of_real = tf.nn.leaky_relu(tf.layers.batch_normalization(logits_of_real, training=True))
+                logits_of_real = tf.nn.leaky_relu(self.batch_norm_wrapper(logits_of_real))
+                #logits_of_real = tf.nn.leaky_relu(logits_of_real)
+
                 # Feed-forward layer 1
                 logits_of_real = tf.contrib.layers.flatten(logits_of_real)
                 logits_of_real = tf.layers.dense(logits_of_real, units=128)
                 #logits_of_real = tf.layers.dropout(logits_of_real, dropout_probability, training=True)
-                logits_of_real = tf.nn.leaky_relu(tf.layers.batch_normalization(logits_of_real, training=True))
+                logits_of_real = tf.nn.leaky_relu(self.batch_norm_wrapper(logits_of_real))
+                #logits_of_real = tf.nn.leaky_relu(logits_of_real)
                 # 2
-                #logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
                 logits_of_real = tf.layers.dense(logits_of_real, units=1)
                 proba_of_real = tf.nn.sigmoid(logits_of_real)
 
             elif self.model=="dcgan_custom":
                 dropout_probability = 0.5
-                image = tf.reshape(image, shape=[-1, self.output_height, self.output_width, self.output_depth])
+                # Convolution 1
                 logits_of_real = tf.layers.conv2d(image, kernel_size=5, filters=self.depth_layers[0], strides=2, padding='same', activation=tf.nn.leaky_relu)
                 logits_of_real = tf.layers.dropout(logits_of_real, dropout_probability, training=True)
-                #logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
+                # Convolution 2
                 logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=self.depth_layers[1], strides=1, padding='same', activation=tf.nn.leaky_relu)
                 logits_of_real = tf.layers.dropout(logits_of_real, dropout_probability, training=True)
-                #logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
+                # Convolution 3
                 logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=self.depth_layers[2], strides=1, padding='same', activation=tf.nn.leaky_relu)
                 logits_of_real = tf.layers.dropout(logits_of_real, dropout_probability, training=True)
-                #logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
+                # Convolution 4
                 logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=self.depth_layers[3], strides=1, padding='same', activation=tf.nn.leaky_relu)
                 logits_of_real = tf.layers.dropout(logits_of_real, dropout_probability, training=True)
-                #logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
+                # Classification
                 logits_of_real = tf.contrib.layers.flatten(logits_of_real)
                 logits_of_real = tf.layers.dense(logits_of_real, units=1)
 
@@ -119,3 +124,11 @@ class Discriminator:
             self.solver = tf.train.AdamOptimizer(learning_rate=0.0002, beta1=0.5).minimize(self.loss,
                                                                                            var_list=self.variables,
                                                                        name='solver_discriminator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam
+
+    def batch_norm_wrapper(self, inputs):
+        epsilon = 1e-3
+        scale = tf.ones(tf.shape(inputs))
+        beta = tf.zeros(tf.shape(inputs))
+        # Discriminator is always training
+        batch_mean, batch_var = tf.nn.moments(inputs, [0])
+        return tf.nn.batch_normalization(inputs, batch_mean, batch_var, beta, scale, epsilon)

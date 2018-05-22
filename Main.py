@@ -61,6 +61,6 @@ def main(dataSet='MNIST', test_name = '_1', model="simple", dim_noise=100, flip_
 
 
 if __name__ == '__main__':
-    main(dataSet='CIFAR10', test_name = '_1', model="dcgan_vanilla", dim_noise=100, flip_discri_labels=False,
+    main(dataSet='CIFAR10', test_name = '_1', model="intermediate", dim_noise=100, flip_discri_labels=False,
          final_generator_activation="tanh", n_epochs=150, batch_size=32, k=1, is_data_normalized=False,
          is_inception_score_computed=False, is_model_saved=False, noise_type="gaussian", strategy="k_steps")

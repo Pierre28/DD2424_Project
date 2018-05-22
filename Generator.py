@@ -18,6 +18,8 @@ class Generator:
         self.variables = []
         self.loss = 0
         self.solver = 0
+        self.means = []
+        self.variances = []
 
     def generate_images(self, z, reuse=tf.AUTO_REUSE, is_training=True):  # AUTO_REUSE necessary to compute inception.
         if self.final_activation=="sigmoid":
@@ -37,13 +39,13 @@ class Generator:
                 # Projection of noise and proper reshaping
                 faked_images = tf.layers.dense(z, units=self.output_width*self.output_height*128/16)
                 #faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
+                faked_images = tf.nn.relu(self.batch_norm_wrapper(faked_images, is_training, 0))
                 faked_images = tf.reshape(faked_images, shape=[-1, int(self.output_height/4), int(self.output_width/4), 128])
                 # Convolution 1
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=64, strides=2,
                                                           padding='same')
                 #faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
+                faked_images = tf.nn.relu(self.batch_norm_wrapper(faked_images, is_training, 1))
                 # Convolution 2
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=5, filters=self.output_depth, strides=2,
                                                           padding='same', activation=final_activation)
@@ -52,27 +54,23 @@ class Generator:
                 dropout_probability = 0.2
                 dim_first_layer, strides, kernel_size = self.get_complex_model_parameters()
                 # Projection of noise and proper reshaping
-                faked_images = tf.layers.dense(z, units=self.depth_layers[0]*dim_first_layer[0]*dim_first_layer[1])
-                #faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
+                faked_images = tf.layers.dense(z, units=self.depth_layers[0]*dim_first_layer[0]*dim_first_layer[1], activation=tf.nn.relu)
+                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
                 faked_images = tf.reshape(faked_images, shape=[-1, dim_first_layer[0], dim_first_layer[1], self.depth_layers[0]])
 
                 # Fractional-strided convolutions/Deconvolutions
                 # 1
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[0], filters=self.depth_layers[1],
-                                                          strides=strides[0], padding='same')
-                #faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
+                                                          strides=strides[0], padding='same', activation=tf.nn.relu)
+                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
                 # 2
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[1], filters=self.depth_layers[2],
-                                                          strides=strides[1], padding='same')
-                #faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
+                                                          strides=strides[1], padding='same', activation=tf.nn.relu)
+                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
                 # 3
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[2], filters=self.depth_layers[3],
-                                                          strides=strides[2], padding='same')
-                #faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
-                faked_images = tf.nn.relu(tf.layers.batch_normalization(faked_images, training=is_training))
+                                                          strides=strides[2], padding='same', activation=tf.nn.relu)
+                faked_images = tf.layers.dropout(faked_images, dropout_probability, training=is_training)
                 # 4
                 faked_images = tf.layers.conv2d_transpose(faked_images, kernel_size=kernel_size[3], filters=self.output_depth,
                                                           strides=strides[3], padding='same', activation=final_activation)
@@ -143,3 +141,19 @@ class Generator:
             self.solver = tf.train.AdamOptimizer(learning_rate=0.0002, beta1=0.5).minimize(self.loss,
                                                                                            var_list=self.variables,
                                                                                            name='solver_generator')  # Paper: learning_rate=0.0002, beta1=0.5 in Adam
+
+    def batch_norm_wrapper(self, inputs, is_training, layer_idx, decay=0.999):
+        epsilon = 1e-3
+        if len(self.means) < layer_idx + 1:
+            self.means.append(tf.Variable(tf.zeros(inputs.get_shape()[1:]), trainable=False))
+            self.variances.append(tf.Variable(tf.ones(inputs.get_shape()[1:]), trainable=False))
+        scale = tf.ones(tf.shape(inputs))
+        beta = tf.zeros(tf.shape(inputs))
+
+        if is_training:
+            batch_mean, batch_var = tf.nn.moments(inputs, [0])
+            self.means[layer_idx] = tf.assign(self.means[layer_idx], self.means[layer_idx] * decay + batch_mean * (1 - decay))
+            self.variances[layer_idx] = tf.assign(self.variances[layer_idx], self.variances[layer_idx] * decay + batch_var * (1 - decay))
+            return tf.nn.batch_normalization(inputs, batch_mean, batch_var, beta, scale, epsilon)
+        else:
+            return tf.nn.batch_normalization(inputs, self.means[layer_idx], self.variances[layer_idx], beta, scale, epsilon)
