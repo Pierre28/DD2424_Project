@@ -2,7 +2,7 @@ from Generator import *
 from Discriminator import *
 import tensorflow as tf
 import numpy as np
-#from Tools import inception_model
+from Tools import inception_model
 import os
 import matplotlib
 matplotlib.use("Agg")
@@ -46,7 +46,7 @@ class DCGAN():
 
     def build_graph(self, flip_discri_labels=False):
         # Variables
-        fake_images = self.generator.generate_images(self.noise_batch, reuse=None, is_training=False)
+        fake_images = self.generator.generate_images(self.noise_batch, reuse=False, is_training=False)
         self.fake_images_probabilities, fake_images_logits = self.discriminator.compute_probability(fake_images, reuse=False)
         self.real_images_probabilities, real_images_logits = self.discriminator.compute_probability(self.X_batch, reuse=True)
         # Loss
@@ -160,7 +160,6 @@ class DCGAN():
                 self.save_model(sess, strategy)
 
             self.display_generated_images(sess, 'final_', n_images=100, noise_type=noise_type)
-            
 
     def save_inception_score(self, mean,std,step):
         # Saving inception score

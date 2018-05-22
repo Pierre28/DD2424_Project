@@ -1,8 +1,8 @@
 from DCGAN import *
 from mnist import MNIST
 import numpy as np
-from os import listdir
-from os.path import join
+import os
+from Tools.load_pokemon import Import_pokemon
 import pickle
 import matplotlib.pyplot as plt
 
@@ -20,12 +20,12 @@ def main(dataSet='MNIST', model="simple", dim_noise=100, flip_discri_labels=Fals
         mndata = MNIST(path_to_dataset)
         #mndata.gz = True  # Données en format .gz dans le dossier Datasets\MNIST
         images, _ = mndata.load_training()
-        images = np.array(images)
+        images = np.array(images).reshape(-1, 28, 28, 1)
         image_dimensions = [28, 28, 1]
 
     elif dataSet == 'CIFAR10':
         path_to_dataset = os.path.join('Datasets', dataSet)
-        paths_to_batch = [os.path.join(path_to_dataset, f)for f in listdir(path_to_dataset) if f[0:10] == 'data_batch']
+        paths_to_batch = [os.path.join(path_to_dataset, f)for f in os.listdir(path_to_dataset) if f[0:10] == 'data_batch']
 
         with open(paths_to_batch[0], 'rb') as file:
             data = pickle.load(file, encoding='bytes')
@@ -46,10 +46,12 @@ def main(dataSet='MNIST', model="simple", dim_noise=100, flip_discri_labels=Fals
         image_dimensions = [218, 178, 3]
 
     elif dataSet == 'pokemon':
-        if not os.path.exists('./Datasets/pokemon.npz'):
-            from Tools.load_pokemon import Import_pokemon
-            Import_pokemon(os.path.join('Datasets','pokemon'))
-        images = np.array(np.load(os.path.join('Datasets', 'pokemon.npz'))['images']).transpose((0,2,3,1))
+        path_to_dataset_directory = os.path.join('Datasets', dataSet)
+        path_to_dataset_file = os.path.join(path_to_dataset_directory, 'pokemon.npz')
+        if not os.path.exists(path_to_dataset_file):
+            Import_pokemon(path_to_dataset_directory)
+        with np.load(path_to_dataset_file) as data:
+            images = data['images']
         image_dimensions = images[0].shape
 
     dcgan = DCGAN(image_dimensions, dim_noise=dim_noise, model=model, data=dataSet,
@@ -59,6 +61,6 @@ def main(dataSet='MNIST', model="simple", dim_noise=100, flip_discri_labels=Fals
 
 
 if __name__ == '__main__':
-    main(dataSet='CIFAR10', model="dcgan_vanilla", dim_noise=100, flip_discri_labels=False,
+    main(dataSet='pokemon', model="intermediate", dim_noise=100, flip_discri_labels=False,
          final_generator_activation="tanh", n_epochs=150, batch_size=32, k=1, is_data_normalized=False,
          is_inception_score_computed=False, is_model_saved=False, noise_type="gaussian", strategy="k_steps")
