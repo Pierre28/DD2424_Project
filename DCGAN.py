@@ -2,7 +2,7 @@ from Generator import *
 from Discriminator import *
 import tensorflow as tf
 import numpy as np
-from Tools import inception_model
+#from Tools import inception_model
 import os
 import matplotlib.pyplot as plt
 
@@ -22,7 +22,8 @@ class DCGAN():
         self.real_images_probabilities = 0
         self.fake_images_probabilities = 0
         # Build input variables
-        self.X_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.output_depth*self.output_height*self.output_width], name='X')
+        #self.X_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.output_depth*self.output_height*self.output_width], name='X')
+        self.X_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.output_height, self.output_width, self.output_depth], name='real_images')
         self.noise_batch = tf.placeholder(dtype=tf.float32, shape=[None, self.dim_noise], name='noise')
         # Build both components
         self.final_generator_activation = final_generator_activation
@@ -43,9 +44,9 @@ class DCGAN():
 
     def build_graph(self, flip_discri_labels=False):
         # Variables
-        fake_images = self.generator.generate_images(self.noise_batch)
-        self.real_images_probabilities, real_images_logits = self.discriminator.compute_probability(self.X_batch)
-        self.fake_images_probabilities, fake_images_logits = self.discriminator.compute_probability(fake_images)
+        fake_images = self.generator.generate_images(self.noise_batch, reuse=None, is_training=False)
+        self.fake_images_probabilities, fake_images_logits = self.discriminator.compute_probability(fake_images, reuse=False)
+        self.real_images_probabilities, real_images_logits = self.discriminator.compute_probability(self.X_batch, reuse=True)
         # Loss
         self.set_losses(real_images_logits, fake_images_logits, flip_discri_labels=False)
         self.generator.set_solver()
@@ -67,8 +68,8 @@ class DCGAN():
             noise_batch_values = self.get_noise(size_noise, distribution=noise_type)
             _, D_curr_loss = sess.run([self.discriminator.solver, self.discriminator.loss],
                                       feed_dict={self.X_batch: X_batch_values, self.noise_batch: noise_batch_values})
-            noise_batch_values = self.get_noise(size_noise, distribution=noise_type)
-            if j == 1 or j % k == 0:  # Improving G every k steps
+            for _ in range(k):  # Improving G every k steps
+                noise_batch_values = self.get_noise(size_noise, distribution=noise_type)
                 _, G_curr_loss = sess.run([self.generator.solver, self.generator.loss],
                                           feed_dict={self.noise_batch: noise_batch_values})
         elif strategy=="min_gap":
@@ -89,9 +90,9 @@ class DCGAN():
 
         elif strategy=="probabilities":
             # Here loss is probability
-            if 0.7<D_curr_loss and was_D_trained:
+            if 0.5<D_curr_loss-G_curr_loss and was_D_trained:
                 train_D = False
-            elif G_curr_loss>0.7 and was_G_trained:
+            elif 0.5<G_curr_loss-D_curr_loss and was_G_trained:
                 train_G = False
             if train_G:
                 noise_batch_values = self.get_noise(size_noise, distribution=noise_type)
@@ -212,12 +213,12 @@ class DCGAN():
             if not os.path.exists(os.path.join('generated_img', 'CIFAR10')):
                 os.makedirs(os.path.join('generated_img', 'CIFAR10'))
             noise_batch_values = self.get_noise(n_images, distribution=noise_type)
-            faked_images = sess.run(self.generator.generate_images(self.noise_batch), feed_dict={self.noise_batch: noise_batch_values})
-            if self.final_generator_activation=="sigmoid":
-                displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1))
-            elif self.final_generator_activation == "tanh":
-                displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1) * 0.5 + 0.5)
-            fig = self.plot(displayable_images)
+            faked_images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False), feed_dict={self.noise_batch: noise_batch_values})
+            # if self.final_generator_activation=="sigmoid":
+            #     displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1))
+            # elif self.final_generator_activation == "tanh":
+            #     displayable_images = (np.reshape(faked_images, (-1, 3, 32, 32)).transpose(0, 2, 3, 1) * 0.5 + 0.5)
+            fig = self.plot(faked_images*0.5+0.5)
             plt.savefig(os.path.join('generated_img', 'CIFAR10', 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
             
