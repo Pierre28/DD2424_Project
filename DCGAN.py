@@ -121,7 +121,7 @@ class DCGAN():
         G_curr_loss = 0
         D_trained = False
         G_trained = False
-        inception_scores = []
+        step = 0
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             writer = tf.summary.FileWriter('output_tensorboard', sess.graph)
@@ -134,6 +134,7 @@ class DCGAN():
             for i in range(n_epochs):
                 print("Performing epoch " + str(i+1) + "/" + str(n_epochs) + '\n')
                 for j in range(1, max_j):
+                    step += 1
                     # Indices of batch
                     j_start = (j - 1) * batch_size
                     j_end = j * batch_size
@@ -151,17 +152,13 @@ class DCGAN():
                 # Compute inception score
                 if is_inception_score_computed:
                     mean, std = self.compute_inception_score(sess, noise_type=noise_type)
-                    inception_scores.append(mean)
-                    print('Inception score', mean)
+                    self.save_inception_score(mean,std,step)
 
             if is_model_saved:
                 self.save_model(sess, strategy)
 
             self.display_generated_images(sess, 'final_', n_images=100, noise_type=noise_type)
-            mean, std = self.compute_inception_score(sess, noise_type=noise_type)
-            inception_scores.append(mean)
-            print('Inception score', mean)
-            self.save_inception_score(inception_scores)
+            
 
     def save_inception_score(self, mean,std,step):
         # Saving inception score
