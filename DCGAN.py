@@ -189,11 +189,10 @@ class DCGAN():
         images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False), feed_dict={self.noise_batch: noise_batch_values})
         if self.data == 'MNIST':
             list_images = [np.append(np.array(image*127 + 128, dtype='int32').reshape((28, 28, 1)), np.zeros((28,28,2)), axis=2) for image in images]
-        if self.data == 'CIFAR10':
+        else :
             list_images = [np.array(image*127 + 128, dtype='int32') for image in images]
-        if self.data == 'CelebA':
-            list_images = [np.array(image*127 + 128) for image in images]
-        return inception_model.get_inception_score(list_images)  # mean, std
+
+        return inception_model.get_inception_score(list_images)
 
     def display_generated_images(self, sess, n_epoch, n_images=64, noise_type="uniform"):
         print("Display generated image")
@@ -222,6 +221,18 @@ class DCGAN():
             fig = self.plot(faked_images*0.5+0.5)
             plt.savefig(os.path.join('generated_img', 'CIFAR10', 'Epoch' + str(n_epoch) + '.png'))
             plt.close(fig)
+
+        elif self.data == 'pokemon':
+            if not os.path.exists(os.path.join('generated_img', 'pokemon')):
+                os.makedirs(os.path.join('generated_img', 'pokemon'))
+            noise_batch_values = self.get_noise(n_images, distribution=noise_type)
+            faked_images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False, reuse=True), feed_dict={self.noise_batch: noise_batch_values})
+            if self.final_generator_activation == "tanh":
+                faked_images = faked_images* 0.5 + 0.5
+            fig = self.plot(faked_images)
+            plt.savefig(os.path.join('generated_img', 'pokemon', 'Epoch' + str(n_epoch) + '.png'))
+            plt.close(fig)
+
             
     @staticmethod
     def plot(samples):

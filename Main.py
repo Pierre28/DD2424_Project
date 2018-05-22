@@ -45,6 +45,13 @@ def main(dataSet='MNIST', model="simple", dim_noise=100, flip_discri_labels=Fals
         images = np.array(images)
         image_dimensions = [218, 178, 3]
 
+    elif dataSet == 'pokemon':
+        if not os.path.exists('./Datasets/pokemon.npz'):
+            from Tools.load_pokemon import Import_pokemon
+            Import_pokemon(os.path.join('Datasets','pokemon'))
+        images = np.array(np.load(os.path.join('Datasets', 'pokemon.npz'))['images']).transpose((0,2,3,1))
+        image_dimensions = images[0].shape
+
     dcgan = DCGAN(image_dimensions, dim_noise=dim_noise, model=model, data=dataSet,
                   flip_discri_labels=flip_discri_labels, final_generator_activation=final_generator_activation)
     dcgan.train(images, n_epochs, batch_size, k=k, is_inception_score_computed=is_inception_score_computed,
