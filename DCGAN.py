@@ -194,7 +194,7 @@ class DCGAN():
             list_images = [np.array(image*127 + 128) for image in images]
         return inception_model.get_inception_score(list_images)  # mean, std
 
-    def display_generated_images(self, sess, n_epoch, n_images=25, noise_type="uniform"):
+    def display_generated_images(self, sess, n_epoch, n_images=64, noise_type="uniform"):
         print("Display generated image")
         if self.data == 'MNIST':
             if not os.path.exists(os.path.join('generated_img', 'MNIST')):
