@@ -78,18 +78,18 @@ class Discriminator:
                 image = tf.reshape(image, shape=[-1, self.output_height, self.output_width, self.output_depth])
                 # Convolution 1
                 logits_of_real = tf.layers.conv2d(image, kernel_size=5, filters=self.depth_layers[0], strides=2, padding='same')
-                logits_of_real = tf.nn.leaky_relu(logits_of_real, training=True)
+                logits_of_real = tf.nn.leaky_relu(logits_of_real)
                 # Convolution 2
                 logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=self.depth_layers[1], strides=1, padding='same')
-                logits_of_real = tf.nn.leaky_relu(logits_of_real, training=True)
+                logits_of_real = tf.nn.leaky_relu(logits_of_real)
                 logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
                 # Convolution 3
                 logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=self.depth_layers[2], strides=1, padding='same')
-                logits_of_real = tf.nn.leaky_relu(logits_of_real, training=True)
+                logits_of_real = tf.nn.leaky_relu(logits_of_real)
                 logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
                 # Convolution 4
                 logits_of_real = tf.layers.conv2d(logits_of_real, kernel_size=5, filters=self.depth_layers[3], strides=1, padding='same')
-                logits_of_real = tf.nn.leaky_relu(logits_of_real, training=True)
+                logits_of_real = tf.nn.leaky_relu(logits_of_real)
                 logits_of_real = tf.layers.batch_normalization(logits_of_real, training=True)
                 # Classification
                 logits_of_real = tf.contrib.layers.flatten(logits_of_real)
