@@ -32,7 +32,7 @@ def main(dataSet='MNIST', test_name = '_1', model="simple", dim_noise=100, flip_
             labels = np.array(data[b'labels'])
             images = np.array(data[b'data'][np.where(labels == 7)])          
 
-        for i in range(1,len(paths_to_batch)):
+        for i in range(1, len(paths_to_batch)):
             with open(paths_to_batch[i], 'rb') as file:
                 data = pickle.load(file, encoding='bytes')
                 labels = np.array(data[b'labels'])
@@ -61,6 +61,6 @@ def main(dataSet='MNIST', test_name = '_1', model="simple", dim_noise=100, flip_
 
 
 if __name__ == '__main__':
-    main(dataSet='CIFAR10', test_name = '_1', model="intermediate", dim_noise=100, flip_discri_labels=False,
-         final_generator_activation="tanh", n_epochs=150, batch_size=32, k=1, is_data_normalized=False,
+    main(dataSet='CIFAR10', test_name='intermediate_tanh_64_gaussian', model="intermediate", dim_noise=100, flip_discri_labels=False,
+         final_generator_activation="tanh", n_epochs=100, batch_size=64, k=1, is_data_normalized=False,
          is_inception_score_computed=False, is_model_saved=False, noise_type="gaussian", strategy="k_steps")
