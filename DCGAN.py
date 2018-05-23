@@ -43,14 +43,19 @@ class DCGAN():
             return np.random.normal(size=(batch_size, self.dim_noise))
 
     def set_losses(self, real_images_logits, fake_images_logits, flip_discri_labels=False):
-        self.discriminator.set_loss(real_images_logits, fake_images_logits, flip_labels=flip_discri_labels)
-        self.generator.set_loss(fake_images_logits)
+        if self.model=="dcgan_custom":
+            self.discriminator.set_loss(real_images_logits, fake_images_logits, flip_labels=flip_discri_labels)
+            self.generator.set_loss(fake_images_logits)
+        else:
+            with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
+                self.discriminator.set_loss(real_images_logits, fake_images_logits, flip_labels=flip_discri_labels)
+                self.generator.set_loss(fake_images_logits)
 
     def build_graph(self, flip_discri_labels=False):
         # Variables
-        fake_images = self.generator.generate_images(self.noise_batch, reuse=False, is_training=False)
-        self.fake_images_probabilities, fake_images_logits = self.discriminator.compute_probability(fake_images, reuse=False)
-        self.real_images_probabilities, real_images_logits = self.discriminator.compute_probability(self.X_batch, reuse=True)
+        fake_images = self.generator.generate_images(self.noise_batch, reuse=None, is_training=True)
+        self.real_images_probabilities, real_images_logits = self.discriminator.compute_probability(self.X_batch, reuse=None)
+        self.fake_images_probabilities, fake_images_logits = self.discriminator.compute_probability(fake_images, reuse=True)
         # Loss
         self.set_losses(real_images_logits, fake_images_logits, flip_discri_labels=flip_discri_labels)
         self.generator.set_solver()
@@ -75,7 +80,7 @@ class DCGAN():
             for _ in range(k):  # Improving G every k steps
                 noise_batch_values = self.get_noise(size_noise, distribution=noise_type)
                 _, G_curr_loss = sess.run([self.generator.solver, self.generator.loss],
-                                          feed_dict={self.noise_batch: noise_batch_values})
+                                          feed_dict={self.noise_batch: noise_batch_values, self.X_batch: X_batch_values})
         elif strategy=="min_gap":
             if gap*previous_D_loss < previous_G_loss:
                 noise_batch_values = self.get_noise(size_noise, distribution=noise_type)
@@ -126,6 +131,7 @@ class DCGAN():
         D_trained = False
         G_trained = False
         step = 0
+        #self.generator.iteration += 1
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             writer = tf.summary.FileWriter('output_tensorboard', sess.graph)
@@ -138,6 +144,7 @@ class DCGAN():
             for i in range(n_epochs):
                 print("Performing epoch " + str(i+1) + "/" + str(n_epochs) + '\n')
                 for j in range(1, max_j):
+                    self.generator.iteration += 1
                     step += 1
                     # Indices of batch
                     j_start = (j - 1) * batch_size
@@ -147,18 +154,16 @@ class DCGAN():
                     # Compute loss and optimize
                     D_curr_loss, G_curr_loss, D_trained, G_trained = self.optimize(sess, X_batch_values, j_end - j_start, j, D_curr_loss,
                                                              G_curr_loss, D_trained, G_trained, strategy=strategy, k=k, gap=gap, noise_type=noise_type)
-                    #print([np.max(sess.run(tensor)) for tensor in self.generator.means])
-                    #print([tf.Print(tensor, [tensor, tf.shape(tensor)]) for tensor in self.generator.means])
+
                     if j%show_loss_every == 0:
                         print(str(j) + '/' + str(max_j-1) + ' : cost D=' + str(D_curr_loss) + ' - cost G=' + str(G_curr_loss) + '\n')
-
                 # Store generated images after each epoch
                 self.display_generated_images(sess, i+1, noise_type=noise_type)
                 
                 # Compute inception score
                 if is_inception_score_computed:
                     mean, std = self.compute_inception_score(sess, noise_type=noise_type)
-                    self.save_inception_score(mean,std,step)
+                    self.save_inception_score(mean, std, step)
 
             if is_model_saved:
                 self.save_model(sess, strategy)
@@ -200,8 +205,8 @@ class DCGAN():
     def display_generated_images(self, sess, n_epoch, n_images=64, noise_type="uniform"):
         print("Display generated image")
         if self.data == 'MNIST':
-            if not os.path.exists(os.path.join('generated_img', 'MNIST', test_name)):
-                os.makedirs(os.path.join('generated_img', 'MNIST', test_name))
+            if not os.path.exists(os.path.join('generated_img', 'MNIST', self.test_name)):
+                os.makedirs(os.path.join('generated_img', 'MNIST', self.test_name))
             noise_batch_values = self.get_noise(n_images, distribution=noise_type)
             faked_images = sess.run(self.generator.generate_images(self.noise_batch, is_training=False, reuse=True), feed_dict={self.noise_batch: noise_batch_values})
             #if self.final_generator_activation=="sigmoid":
