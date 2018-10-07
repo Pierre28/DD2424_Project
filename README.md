@@ -1,6 +1,8 @@
 # DD2424_Project
 
-During this project we want to explore the Generative Adversarial Networks (GANs), through the generation of bird images, based on the Caltech-UCSD Birds dataset. Gans were introduce by Goodfellow et al., in 2014, giving rise to a whole new field of research.
-We would rely mainly on the work done by  Radford et al., who introduced the Deep Convolutional Generative Adversial Model.
+Final project for the Deep Learning class at KTH, 2018.
 
-To achieve this objective, we plan to use the Python Tensorflow library as it is well documented and adapted to solve Deep Learning problems.
+During this project we explored the Generative Adversarial Networks (GANs), through the generation of various images (MNIST, CIFAR). 
+The present project relies mainly on the work done by  Radford et al., who introduced the Deep Convolutional Generative Adversial Model.
+
+Our paper can be found [here](https://github.com/Pierre28/DD2424_Project/blob/master/Overview_of_Generative_Adversial_Network.pdf)
